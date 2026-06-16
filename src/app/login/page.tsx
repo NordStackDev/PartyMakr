@@ -69,6 +69,7 @@ export default async function LoginPage({
               type="email"
               name="email"
               required
+              autoFocus
               defaultValue={unconfirmed ?? ""}
               autoComplete="email"
               className="auth-input"

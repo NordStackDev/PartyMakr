@@ -18,7 +18,7 @@ export default async function HomePage() {
       <Brand size="lg" />
 
       <p className="mt-4 max-w-xs text-base text-zinc-400">
-        Find fester i nærheden af dig — på et kort, ikke et feed.
+        Find fester i nærheden af dig. Hvis du mangler socialicering, så er det her stedet for dig. Opret en konto og kom i gang!
       </p>
 
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
