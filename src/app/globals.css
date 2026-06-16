@@ -77,50 +77,79 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
- * Slow drifting neon glow. Long, staggered loops so the background gently
- * "flows" behind the glass. Disabled when the user prefers reduced motion.
+ * Flowing neon background. A slowly rotating aurora plus drifting glow blobs
+ * give a continuous sense of motion behind the glass. All motion is disabled
+ * when the user prefers reduced motion.
  * ------------------------------------------------------------------------- */
+
+/* Rotating aurora — oversized so its corners never show as it spins. */
+.aurora {
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(217, 70, 239, 0.35),
+    rgba(139, 92, 246, 0.3),
+    rgba(236, 72, 153, 0.32),
+    rgba(99, 102, 241, 0.3),
+    rgba(217, 70, 239, 0.35)
+  );
+  filter: blur(60px);
+  transform: translate(-50%, -50%);
+}
+
+@keyframes pm-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0turn);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(1turn);
+  }
+}
+
 @keyframes pm-float-a {
   0%,
   100% {
     transform: translate(0, 0) scale(1);
   }
   50% {
-    transform: translate(50px, 38px) scale(1.18);
+    transform: translate(90px, 70px) scale(1.25);
   }
 }
 
 @keyframes pm-float-b {
   0%,
   100% {
-    transform: translate(0, 0) scale(1.05);
+    transform: translate(0, 0) scale(1.1);
   }
   50% {
-    transform: translate(-46px, 30px) scale(0.9);
+    transform: translate(-85px, 55px) scale(0.85);
   }
 }
 
 @keyframes pm-float-c {
   0%,
   100% {
-    transform: translate(0, 0) scale(0.95);
+    transform: translate(0, 0) scale(0.9);
   }
   50% {
-    transform: translate(38px, -42px) scale(1.2);
+    transform: translate(70px, -80px) scale(1.3);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .aurora {
+    animation: pm-spin 40s linear infinite;
+    will-change: transform;
+  }
   .glow-a {
-    animation: pm-float-a 26s ease-in-out infinite;
+    animation: pm-float-a 22s ease-in-out infinite;
     will-change: transform;
   }
   .glow-b {
-    animation: pm-float-b 32s ease-in-out infinite;
+    animation: pm-float-b 28s ease-in-out infinite;
     will-change: transform;
   }
   .glow-c {
-    animation: pm-float-c 29s ease-in-out infinite;
+    animation: pm-float-c 25s ease-in-out infinite;
     will-change: transform;
   }
 }
