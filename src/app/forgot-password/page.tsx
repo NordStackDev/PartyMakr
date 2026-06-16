@@ -15,14 +15,14 @@ export default async function ForgotPasswordPage({
 
   return (
     <main className="flex flex-1 flex-col justify-center px-6 py-12">
-      <Brand tagline="We'll get you back in." />
+      <Brand tagline="Vi får dig ind igen." />
 
       <div className="mx-auto mt-8 w-full max-w-sm">
         <h1 className="text-xl font-semibold tracking-tight text-white">
-          Reset your password
+          Nulstil din adgangskode
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Enter your email and we&apos;ll send you a reset link.
+          Indtast din e-mail, så sender vi dig et nulstillingslink.
         </p>
 
         {error ? (
@@ -33,7 +33,7 @@ export default async function ForgotPasswordPage({
 
         <form action={requestPasswordReset} className="mt-6 space-y-4">
           <label className="block">
-            <span className="auth-label">Email</span>
+            <span className="auth-label">E-mail</span>
             <input
               type="email"
               name="email"
@@ -42,15 +42,15 @@ export default async function ForgotPasswordPage({
               className="auth-input"
             />
           </label>
-          <SubmitButton pendingText="Sending…" className="btn-primary">
-            Send reset link
+          <SubmitButton pendingText="Sender…" className="btn-primary">
+            Send nulstillingslink
           </SubmitButton>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-400">
-          Remembered it?{" "}
+          Kom du i tanke om den?{" "}
           <Link href="/login" className="auth-link">
-            Back to sign in
+            Tilbage til log ind
           </Link>
         </p>
       </div>

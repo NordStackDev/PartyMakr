@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { getSiteURL } from "@/lib/site-url";
+import { translateAuthError } from "@/lib/auth/errors";
 
 function getString(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -20,7 +21,7 @@ export async function signIn(formData: FormData) {
   const password = getString(formData, "password");
 
   if (!email || !password) {
-    withError("/login", "Email and password are required.");
+    withError("/login", "E-mail og adgangskode er påkrævet.");
   }
 
   const supabase = await createClient();
@@ -32,7 +33,7 @@ export async function signIn(formData: FormData) {
     if (error.code === "email_not_confirmed") {
       redirect(`/login?unconfirmed=${encodeURIComponent(email)}`);
     }
-    withError("/login", error.message);
+    withError("/login", translateAuthError(error));
   }
 
   revalidatePath("/", "layout");
@@ -43,7 +44,7 @@ export async function resendConfirmation(formData: FormData) {
   const email = getString(formData, "email").trim();
 
   if (!email) {
-    withError("/login", "Enter your email to resend the confirmation link.");
+    withError("/login", "Indtast din e-mail for at sende bekræftelseslinket igen.");
   }
 
   const supabase = await createClient();
@@ -56,12 +57,12 @@ export async function resendConfirmation(formData: FormData) {
   });
 
   if (error) {
-    withError("/login", error.message);
+    withError("/login", translateAuthError(error));
   }
 
   redirect(
     `/login?message=${encodeURIComponent(
-      "Confirmation email sent. Check your inbox.",
+      "Bekræftelsesmail sendt. Tjek din indbakke.",
     )}`,
   );
 }
@@ -71,10 +72,10 @@ export async function signUp(formData: FormData) {
   const password = getString(formData, "password");
 
   if (!email || !password) {
-    withError("/signup", "Email and password are required.");
+    withError("/signup", "E-mail og adgangskode er påkrævet.");
   }
   if (password.length < 8) {
-    withError("/signup", "Password must be at least 8 characters.");
+    withError("/signup", "Adgangskoden skal være mindst 8 tegn.");
   }
 
   const supabase = await createClient();
@@ -88,7 +89,7 @@ export async function signUp(formData: FormData) {
   });
 
   if (error) {
-    withError("/signup", error.message);
+    withError("/signup", translateAuthError(error));
   }
 
   // When the email is already registered, Supabase returns success with no
@@ -97,7 +98,7 @@ export async function signUp(formData: FormData) {
   if (data.user && data.user.identities?.length === 0) {
     redirect(
       `/login?message=${encodeURIComponent(
-        "That email is already registered. Please sign in.",
+        "Den e-mail er allerede registreret. Log venligst ind.",
       )}`,
     );
   }
@@ -107,7 +108,7 @@ export async function signUp(formData: FormData) {
   if (!data.session) {
     redirect(
       `/login?message=${encodeURIComponent(
-        "Check your email to confirm your account before signing in.",
+        "Tjek din e-mail for at bekræfte din konto, før du logger ind.",
       )}`,
     );
   }
@@ -127,7 +128,7 @@ export async function requestPasswordReset(formData: FormData) {
   const email = getString(formData, "email").trim();
 
   if (!email) {
-    withError("/forgot-password", "Enter your email address.");
+    withError("/forgot-password", "Indtast din e-mailadresse.");
   }
 
   const supabase = await createClient();
@@ -138,13 +139,13 @@ export async function requestPasswordReset(formData: FormData) {
   });
 
   if (error) {
-    withError("/forgot-password", error.message);
+    withError("/forgot-password", translateAuthError(error));
   }
 
   // Generic message regardless of whether the email exists (anti-enumeration).
   redirect(
     `/login?message=${encodeURIComponent(
-      "If that email is registered, a password reset link is on its way.",
+      "Hvis e-mailen er registreret, er et nulstillingslink på vej.",
     )}`,
   );
 }
@@ -153,7 +154,7 @@ export async function updatePassword(formData: FormData) {
   const password = getString(formData, "password");
 
   if (password.length < 8) {
-    withError("/reset-password", "Password must be at least 8 characters.");
+    withError("/reset-password", "Adgangskoden skal være mindst 8 tegn.");
   }
 
   const supabase = await createClient();
@@ -162,12 +163,12 @@ export async function updatePassword(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    withError("/login", "Your reset link has expired. Request a new one.");
+    withError("/login", "Dit nulstillingslink er udløbet. Anmod om et nyt.");
   }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    withError("/reset-password", error.message);
+    withError("/reset-password", translateAuthError(error));
   }
 
   revalidatePath("/", "layout");

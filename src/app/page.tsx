@@ -18,20 +18,20 @@ export default async function HomePage() {
       <Brand size="lg" />
 
       <p className="mt-4 max-w-xs text-base text-zinc-400">
-        Find parties happening near you — on a map, not a feed.
+        Find fester i nærheden af dig — på et kort, ikke et feed.
       </p>
 
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
         <Link href="/signup" className="btn-primary">
-          Get started
+          Kom i gang
         </Link>
         <Link href="/login" className="btn-ghost">
-          I have an account
+          Jeg har en konto
         </Link>
       </div>
 
       <p className="mt-10 text-xs text-zinc-500">
-        Public events · friends&apos; gatherings · private parties
+        Offentlige events · venners sammenkomster · private fester
       </p>
     </main>
   );

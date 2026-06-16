@@ -25,11 +25,11 @@ export default async function SignupPage({
 
   return (
     <main className="flex flex-1 flex-col justify-center px-6 py-12">
-      <Brand tagline="Find parties happening near you." />
+      <Brand tagline="Find fester i nærheden af dig." />
 
       <div className="mx-auto mt-8 w-full max-w-sm">
         <h1 className="text-xl font-semibold tracking-tight text-white">
-          Create your account
+          Opret din konto
         </h1>
 
         {error ? (
@@ -40,7 +40,7 @@ export default async function SignupPage({
 
         <form action={signUp} className="mt-6 space-y-4">
           <label className="block">
-            <span className="auth-label">Email</span>
+            <span className="auth-label">E-mail</span>
             <input
               type="email"
               name="email"
@@ -50,7 +50,7 @@ export default async function SignupPage({
             />
           </label>
           <label className="block">
-            <span className="auth-label">Password</span>
+            <span className="auth-label">Adgangskode</span>
             <input
               type="password"
               name="password"
@@ -60,18 +60,18 @@ export default async function SignupPage({
               className="auth-input"
             />
             <span className="mt-1 block text-xs text-zinc-500">
-              At least 8 characters.
+              Mindst 8 tegn.
             </span>
           </label>
-          <SubmitButton pendingText="Creating account…" className="btn-primary">
-            Sign up
+          <SubmitButton pendingText="Opretter konto…" className="btn-primary">
+            Opret konto
           </SubmitButton>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-400">
-          Already have an account?{" "}
+          Har du allerede en konto?{" "}
           <Link href="/login" className="auth-link">
-            Sign in
+            Log ind
           </Link>
         </p>
       </div>

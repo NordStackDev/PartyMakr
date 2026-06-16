@@ -10,16 +10,16 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-      <Brand tagline="You're in." />
+      <Brand tagline="Du er logget ind." />
 
       <div className="mt-8 w-full max-w-md">
         <p className="text-sm text-zinc-400">
-          Signed in as{" "}
+          Logget ind som{" "}
           <span className="font-mono text-zinc-200">{user?.email}</span>
         </p>
 
         <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-400">
-          The map of nearby parties will live here.
+          Kortet med fester i nærheden kommer her.
         </p>
 
         <form action={signOut} className="mt-8">
@@ -27,7 +27,7 @@ export default async function DashboardPage() {
             type="submit"
             className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5"
           >
-            Sign out
+            Log ud
           </button>
         </form>
       </div>

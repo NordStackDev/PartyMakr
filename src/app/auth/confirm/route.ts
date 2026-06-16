@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.redirect(
     new URL(
-      `/login?error=${encodeURIComponent("Invalid or expired confirmation link.")}`,
+      `/login?error=${encodeURIComponent("Ugyldigt eller udløbet bekræftelseslink.")}`,
       request.url,
     ),
   );

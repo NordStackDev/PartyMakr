@@ -9,7 +9,7 @@ import { useFormStatus } from "react-dom";
  */
 export function SubmitButton({
   children,
-  pendingText = "Please wait…",
+  pendingText = "Vent venligst…",
   className,
 }: {
   children: React.ReactNode;
