@@ -1,5 +1,6 @@
 import { signOut } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
+import { Brand } from "@/components/brand";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -8,23 +9,23 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          You&apos;re signed in
-        </h1>
-        <p className="mt-2 text-sm opacity-70">
-          Logged in as <span className="font-mono">{user?.email}</span>
+    <main className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+      <Brand tagline="You're in." />
+
+      <div className="mt-8 w-full max-w-md">
+        <p className="text-sm text-zinc-400">
+          Signed in as{" "}
+          <span className="font-mono text-zinc-200">{user?.email}</span>
         </p>
 
-        <p className="mt-6 text-sm opacity-70">
+        <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-400">
           The map of nearby parties will live here.
         </p>
 
         <form action={signOut} className="mt-8">
           <button
             type="submit"
-            className="rounded-md border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
+            className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5"
           >
             Sign out
           </button>

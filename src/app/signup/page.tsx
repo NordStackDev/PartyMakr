@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signUp } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
+import { Brand } from "@/components/brand";
 
 type SearchParams = Promise<{ error?: string }>;
 
@@ -23,57 +24,53 @@ export default async function SignupPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold tracking-tight">
+    <main className="flex flex-1 flex-col justify-center px-6 py-12">
+      <Brand tagline="Find parties happening near you." />
+
+      <div className="mx-auto mt-8 w-full max-w-sm">
+        <h1 className="text-xl font-semibold tracking-tight text-white">
           Create your account
         </h1>
-        <p className="mt-1 text-sm opacity-70">
-          Find parties happening near you.
-        </p>
 
         {error ? (
-          <p className="mt-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+          <p className="mt-4 rounded-xl border border-red-400/40 bg-red-400/10 px-3 py-2 text-sm text-red-300">
             {error}
           </p>
         ) : null}
 
         <form action={signUp} className="mt-6 space-y-4">
           <label className="block">
-            <span className="text-sm font-medium">Email</span>
+            <span className="auth-label">Email</span>
             <input
               type="email"
               name="email"
               required
               autoComplete="email"
-              className="mt-1 w-full rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-current dark:border-white/15"
+              className="auth-input"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium">Password</span>
+            <span className="auth-label">Password</span>
             <input
               type="password"
               name="password"
               required
               minLength={8}
               autoComplete="new-password"
-              className="mt-1 w-full rounded-md border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-current dark:border-white/15"
+              className="auth-input"
             />
-            <span className="mt-1 block text-xs opacity-60">
+            <span className="mt-1 block text-xs text-zinc-500">
               At least 8 characters.
             </span>
           </label>
-          <SubmitButton
-            pendingText="Creating account…"
-            className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
-          >
+          <SubmitButton pendingText="Creating account…" className="btn-primary">
             Sign up
           </SubmitButton>
         </form>
 
-        <p className="mt-6 text-center text-sm opacity-70">
+        <p className="mt-6 text-center text-sm text-zinc-400">
           Already have an account?{" "}
-          <Link href="/login" className="underline underline-offset-4">
+          <Link href="/login" className="auth-link">
             Sign in
           </Link>
         </p>
