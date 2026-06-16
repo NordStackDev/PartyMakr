@@ -75,3 +75,52 @@ body {
     @apply font-semibold text-fuchsia-300 underline-offset-4 hover:underline;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Slow drifting neon glow. Long, staggered loops so the background gently
+ * "flows" behind the glass. Disabled when the user prefers reduced motion.
+ * ------------------------------------------------------------------------- */
+@keyframes pm-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(50px, 38px) scale(1.18);
+  }
+}
+
+@keyframes pm-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1.05);
+  }
+  50% {
+    transform: translate(-46px, 30px) scale(0.9);
+  }
+}
+
+@keyframes pm-float-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(0.95);
+  }
+  50% {
+    transform: translate(38px, -42px) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .glow-a {
+    animation: pm-float-a 26s ease-in-out infinite;
+    will-change: transform;
+  }
+  .glow-b {
+    animation: pm-float-b 32s ease-in-out infinite;
+    will-change: transform;
+  }
+  .glow-c {
+    animation: pm-float-c 29s ease-in-out infinite;
+    will-change: transform;
+  }
+}
