@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signUp } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
+import { SubmitButton } from "@/components/submit-button";
 
 type SearchParams = Promise<{ error?: string }>;
 
@@ -62,12 +63,12 @@ export default async function SignupPage({
               At least 8 characters.
             </span>
           </label>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90"
+          <SubmitButton
+            pendingText="Creating account…"
+            className="w-full rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background hover:opacity-90 disabled:opacity-60"
           >
             Sign up
-          </button>
+          </SubmitButton>
         </form>
 
         <p className="mt-6 text-center text-sm opacity-70">
