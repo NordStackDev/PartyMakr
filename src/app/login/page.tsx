@@ -76,7 +76,15 @@ export default async function LoginPage({
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium">Password</span>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Password</span>
+              <Link
+                href="/forgot-password"
+                className="text-xs underline underline-offset-4 opacity-70 hover:opacity-100"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               type="password"
               name="password"

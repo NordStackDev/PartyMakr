@@ -122,3 +122,54 @@ export async function signOut() {
   revalidatePath("/", "layout");
   redirect("/login");
 }
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = getString(formData, "email").trim();
+
+  if (!email) {
+    withError("/forgot-password", "Enter your email address.");
+  }
+
+  const supabase = await createClient();
+  // The reset link routes back through /auth/confirm, which exchanges the code
+  // for a recovery session and then forwards to /reset-password.
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getSiteURL()}/auth/confirm?next=/reset-password`,
+  });
+
+  if (error) {
+    withError("/forgot-password", error.message);
+  }
+
+  // Generic message regardless of whether the email exists (anti-enumeration).
+  redirect(
+    `/login?message=${encodeURIComponent(
+      "If that email is registered, a password reset link is on its way.",
+    )}`,
+  );
+}
+
+export async function updatePassword(formData: FormData) {
+  const password = getString(formData, "password");
+
+  if (password.length < 8) {
+    withError("/reset-password", "Password must be at least 8 characters.");
+  }
+
+  const supabase = await createClient();
+  // Requires the recovery session established by the reset link.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    withError("/login", "Your reset link has expired. Request a new one.");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    withError("/reset-password", error.message);
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
