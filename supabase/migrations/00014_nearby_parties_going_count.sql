@@ -6,7 +6,11 @@
 -- DEFINER private.can_see_party, so there's no RLS recursion). The count is just
 -- a number — no attendee identities are exposed.
 
-create or replace function public.nearby_parties(
+-- Return type changes (new going_count column), so the old function must be
+-- dropped first — Postgres won't let CREATE OR REPLACE alter the OUT columns.
+drop function if exists public.nearby_parties(double precision, double precision, integer);
+
+create function public.nearby_parties(
   lat       double precision,
   lng       double precision,
   radius_m  integer default 5000
