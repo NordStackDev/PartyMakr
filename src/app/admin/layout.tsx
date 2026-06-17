@@ -20,7 +20,7 @@ export default async function AdminLayout({
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
         <header className="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/pm-mark.png" alt="PartyMakr" width={36} height={36} />
+            <Image src="/pm-mark.png" alt="PartyMakr" width={40} height={40} />
             <div>
               <p className="text-sm font-bold leading-none text-white">
                 PartyMakr
