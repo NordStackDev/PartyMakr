@@ -33,7 +33,7 @@ export default async function DashboardPage() {
           height={720}
           priority
           unoptimized
-          className="h-16 w-auto"
+          className="h-24 w-auto"
         />
         {admin ? (
           <Link
