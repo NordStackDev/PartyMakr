@@ -33,19 +33,37 @@ async function audit(
   });
 }
 
+/** Look up a user's email by id (best-effort; for readable audit labels). */
+async function emailOf(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<string | undefined> {
+  const { data } = await admin.auth.admin.getUserById(userId);
+  return data?.user?.email ?? undefined;
+}
+
 /**
  * Delete any party. Authorized by the admin DELETE RLS policy; audited.
  */
 export async function deleteParty(partyId: string) {
   const actorId = await assertPermission("moderate");
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const { data: party } = await admin
+    .from("parties")
+    .select("title")
+    .eq("id", partyId)
+    .maybeSingle();
 
   const { error } = await supabase.from("parties").delete().eq("id", partyId);
   if (error) {
     throw new Error("Kunne ikke slette festen.");
   }
 
-  await audit(actorId, "delete_party", "party", partyId);
+  await audit(actorId, "delete_party", "party", partyId, {
+    title: party?.title,
+  });
 
   revalidatePath("/admin/parties");
   revalidatePath("/admin");
@@ -57,6 +75,14 @@ export async function deleteParty(partyId: string) {
 export async function revokeInvite(partyId: string, inviteeId: string) {
   const actorId = await assertPermission("moderate");
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const { data: party } = await admin
+    .from("parties")
+    .select("title")
+    .eq("id", partyId)
+    .maybeSingle();
+  const invitee = await emailOf(admin, inviteeId);
 
   const { error } = await supabase
     .from("party_invites")
@@ -67,7 +93,10 @@ export async function revokeInvite(partyId: string, inviteeId: string) {
     throw new Error("Kunne ikke tilbagekalde invitationen.");
   }
 
-  await audit(actorId, "revoke_invite", "invite", `${partyId}:${inviteeId}`);
+  await audit(actorId, "revoke_invite", "invite", `${partyId}:${inviteeId}`, {
+    party_title: party?.title,
+    invitee,
+  });
 
   revalidatePath("/admin/invites");
   revalidatePath("/admin");
@@ -94,7 +123,9 @@ export async function banUser(userId: string) {
     .update({ banned_at: new Date().toISOString() })
     .eq("id", userId);
 
-  await audit(actorId, "ban_user", "user", userId);
+  await audit(actorId, "ban_user", "user", userId, {
+    email: await emailOf(admin, userId),
+  });
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
@@ -114,7 +145,9 @@ export async function removeUser(userId: string) {
   const admin = createAdminClient();
 
   // Record the audit entry BEFORE deletion (actor stays; target row is gone).
-  await audit(actorId, "delete_user", "user", userId);
+  await audit(actorId, "delete_user", "user", userId, {
+    email: await emailOf(admin, userId),
+  });
 
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
@@ -145,7 +178,9 @@ export async function unbanUser(userId: string) {
     .update({ banned_at: null })
     .eq("id", userId);
 
-  await audit(actorId, "unban_user", "user", userId);
+  await audit(actorId, "unban_user", "user", userId, {
+    email: await emailOf(admin, userId),
+  });
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
@@ -236,7 +271,10 @@ export async function updateAdminPermissions(
     throw new Error("Kunne ikke opdatere tilladelser.");
   }
 
-  await audit(actorId, "update_admin", "user", userId, { permissions: perms });
+  await audit(actorId, "update_admin", "user", userId, {
+    email: await emailOf(admin, userId),
+    permissions: perms,
+  });
 
   revalidatePath("/admin/team");
 }
@@ -253,6 +291,8 @@ export async function removeAdmin(userId: string) {
 
   const admin = createAdminClient();
 
+  const email = await emailOf(admin, userId);
+
   const { error } = await admin
     .from("admin_users")
     .delete()
@@ -261,7 +301,7 @@ export async function removeAdmin(userId: string) {
     throw new Error("Kunne ikke fjerne admin.");
   }
 
-  await audit(actorId, "remove_admin", "user", userId);
+  await audit(actorId, "remove_admin", "user", userId, { email });
 
   revalidatePath("/admin/team");
 }

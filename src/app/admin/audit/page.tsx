@@ -27,8 +27,31 @@ type AuditRow = {
   action: string;
   target_type: string;
   target_id: string | null;
+  metadata: AuditMeta | null;
   created_at: string;
 };
+
+type AuditMeta = {
+  email?: string;
+  title?: string;
+  party_title?: string;
+  invitee?: string;
+  permissions?: string[];
+};
+
+/** Best readable label for who/what an action targeted. */
+function targetLabel(r: AuditRow, emailById: Map<string, string>): string | null {
+  const m = r.metadata ?? {};
+  if (m.party_title || m.invitee) {
+    return [m.party_title, m.invitee].filter(Boolean).join(" · ");
+  }
+  if (m.email) return m.email;
+  if (m.title) return m.title;
+  if (r.target_type === "user" && r.target_id) {
+    return emailById.get(r.target_id) || null;
+  }
+  return null;
+}
 
 export default async function AdminAuditPage() {
   await requirePermission("audit");
@@ -36,7 +59,7 @@ export default async function AdminAuditPage() {
 
   const { data: log } = await supabase
     .from("admin_audit_log")
-    .select("id, actor_id, action, target_type, target_id, created_at")
+    .select("id, actor_id, action, target_type, target_id, metadata, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -59,22 +82,27 @@ export default async function AdminAuditPage() {
       </p>
 
       <ul className="space-y-2">
-        {rows.map((r) => (
-          <li key={r.id} className="glass-card rounded-2xl p-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-medium text-white">
-                {ACTION_LABEL[r.action] ?? r.action}
-              </p>
-              <span className="shrink-0 text-xs text-zinc-500">
-                {formatDate(r.created_at)}
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              Af {(r.actor_id && emailById.get(r.actor_id)) || r.actor_id || "—"}
-              {r.target_id ? ` · mål: ${r.target_id}` : ""}
-            </p>
-          </li>
-        ))}
+        {rows.map((r) => {
+          const target = targetLabel(r, emailById);
+          const actor =
+            (r.actor_id && emailById.get(r.actor_id)) || "Ukendt admin";
+          return (
+            <li key={r.id} className="glass-card rounded-2xl p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-medium text-white">
+                  {ACTION_LABEL[r.action] ?? r.action}
+                  {target ? (
+                    <span className="font-normal text-zinc-300"> · {target}</span>
+                  ) : null}
+                </p>
+                <span className="shrink-0 text-xs text-zinc-500">
+                  {formatDate(r.created_at)}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">Af {actor}</p>
+            </li>
+          );
+        })}
         {rows.length === 0 ? (
           <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
             Ingen handlinger endnu.
