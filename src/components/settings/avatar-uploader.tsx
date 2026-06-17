@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { User, Camera, Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { updateAvatar } from "@/lib/profile/actions";
@@ -108,12 +109,16 @@ export function AvatarUploader({
               unoptimized
             />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-3xl">
-              🎈
+            <span className="flex h-full w-full items-center justify-center text-zinc-400">
+              <User size={36} />
             </span>
           )}
-          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-xl opacity-0 transition group-hover:opacity-100">
-            {pending ? "…" : "📷"}
+          <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100">
+            {pending ? (
+              <Loader2 size={22} className="animate-spin" />
+            ) : (
+              <Camera size={22} />
+            )}
           </span>
         </button>
 

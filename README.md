@@ -54,7 +54,7 @@ PartyMakr is a social app for discovering parties around you. Unlike swipe-based
 
 ### Koncept
 
-PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning til swipe-baserede apps som Tinder er PartyMakr bygget op om en **kort-først-oplevelse**: når du åbner appen, ser du faktiske fester, der finder sted i nærheden af din placering, i stedet for at scrolle gennem profiler. Det gør oplevelsen mindre overfladisk og centreret om rigtige events frem for udseende.
+PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning til swipe-baserede apps som Tinder er PartyMakr bygget op om et direkte produkt til brugeren som gør det lettere og finde fest eller sammenkomst: når du åbner appen, ser du faktiske fester, der finder sted i nærheden af din placering, i stedet for at scrolle gennem profiler. Det gør oplevelsen mindre overfladisk og centreret om rigtige events frem for udseende.
 
 ### Sådan fungerer det
 

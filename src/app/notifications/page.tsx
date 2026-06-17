@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Mail, PartyPopper, Bell } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { MarkRead } from "@/components/notifications/mark-read";
@@ -21,7 +22,7 @@ type Notification = {
   created_at: string;
 };
 
-const ICON: Record<string, string> = { invite: "✉️", rsvp: "🎉" };
+const ICON = { invite: Mail, rsvp: PartyPopper } as const;
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -54,22 +55,25 @@ export default async function NotificationsPage() {
 
       <ul className="mt-5 space-y-2">
         {items.map((n) => {
+          const Icon = ICON[n.type as keyof typeof ICON] ?? Bell;
           const inner = (
             <div
-              className={`glass-card rounded-2xl p-4 ${
+              className={`glass-card flex gap-3 rounded-2xl p-4 ${
                 n.read ? "" : "ring-1 ring-amber-400/40"
               }`}
             >
-              <p className="text-sm font-medium text-white">
-                <span className="mr-1">{ICON[n.type] ?? "🔔"}</span>
-                {n.title}
-              </p>
-              {n.body ? (
-                <p className="mt-0.5 text-sm text-zinc-300">{n.body}</p>
-              ) : null}
-              <p className="mt-1 text-xs text-zinc-400">
-                {timeAgo(n.created_at)}
-              </p>
+              <span className="mt-0.5 shrink-0 text-amber-300">
+                <Icon size={18} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-white">{n.title}</p>
+                {n.body ? (
+                  <p className="mt-0.5 text-sm text-zinc-300">{n.body}</p>
+                ) : null}
+                <p className="mt-1 text-xs text-zinc-400">
+                  {timeAgo(n.created_at)}
+                </p>
+              </div>
             </div>
           );
           return (

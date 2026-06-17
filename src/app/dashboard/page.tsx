@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Plus, Settings, Ticket, Shield } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
@@ -30,34 +31,36 @@ export default async function DashboardPage() {
           <Image src="/pm-mark.png" alt="PartyMakr" width={36} height={36} />
           <span className="text-sm font-bold text-white">PartyMakr</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {user ? <NotificationBell userId={user.id} /> : null}
           {admin ? (
             <Link
               href="/admin"
-              className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+              aria-label="Admin"
+              className="rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
             >
-              Admin
+              <Shield size={16} />
             </Link>
           ) : null}
           <Link
             href="/parties/mine"
-            className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+            aria-label="Mine fester"
+            className="rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
           >
-            Mine fester
+            <Ticket size={16} />
           </Link>
           <Link
             href="/parties/new"
-            className="rounded-full bg-[#FCBE4F] px-2.5 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
+            className="inline-flex items-center gap-1 rounded-full bg-[#FCBE4F] px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
           >
-            + Opret
+            <Plus size={15} /> Opret
           </Link>
           <Link
             href="/settings"
             aria-label="Indstillinger"
-            className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+            className="rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
           >
-            ⚙
+            <Settings size={16} />
           </Link>
         </div>
       </header>

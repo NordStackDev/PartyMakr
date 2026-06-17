@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { MiniMap } from "@/components/map/mini-map";
@@ -90,15 +91,25 @@ export default async function PartyDetailPage({
 
       <p className="mt-1 text-sm text-zinc-300">Vært: {hostName}</p>
 
-      <div className="mt-4 space-y-1 text-sm">
-        <p className="text-zinc-200">🗓️ {fmt(party.starts_at)}</p>
+      <div className="mt-4 space-y-1.5 text-sm">
+        <p className="flex items-center gap-2 text-zinc-200">
+          <Calendar size={16} className="shrink-0 text-amber-300" />
+          {fmt(party.starts_at)}
+        </p>
         {party.ends_at ? (
-          <p className="text-zinc-400">Slutter: {fmt(party.ends_at)}</p>
+          <p className="flex items-center gap-2 text-zinc-400">
+            <Clock size={16} className="shrink-0 text-zinc-400" />
+            Slutter: {fmt(party.ends_at)}
+          </p>
         ) : null}
         {party.address ? (
-          <p className="text-zinc-300">📍 {party.address}</p>
+          <p className="flex items-center gap-2 text-zinc-300">
+            <MapPin size={16} className="shrink-0 text-amber-300" />
+            {party.address}
+          </p>
         ) : null}
-        <p className="text-zinc-400">
+        <p className="flex items-center gap-2 text-zinc-400">
+          <Users size={16} className="shrink-0 text-zinc-400" />
           {goingCount} kommer
           {party.capacity ? ` · ${party.capacity} pladser` : ""}
         </p>
