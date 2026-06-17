@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertPermission } from "@/lib/admin/guard";
 import { PERMISSION_KEYS } from "@/lib/admin/permissions";
+import { getSiteURL } from "@/lib/site-url";
 
 // ~100 years — effectively permanent until explicitly unbanned.
 const PERMANENT_BAN = "876000h";
@@ -184,6 +185,119 @@ export async function unbanUser(userId: string) {
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
+}
+
+// ===========================================================================
+// Per-user management (from the user detail page)
+// ===========================================================================
+
+/**
+ * Update a user's basic profile fields. Requires 'moderate'.
+ */
+export async function updateUserProfile(
+  userId: string,
+  form: { display_name: string; username: string; bio: string },
+) {
+  const actorId = await assertPermission("moderate");
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from("profiles")
+    .update({
+      display_name: form.display_name.trim() || null,
+      username: form.username.trim() || null,
+      bio: form.bio.trim() || null,
+    })
+    .eq("id", userId);
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Brugernavnet er allerede taget.");
+    }
+    throw new Error("Kunne ikke gemme ændringerne.");
+  }
+
+  await audit(actorId, "update_profile", "user", userId, {
+    email: await emailOf(admin, userId),
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/users");
+}
+
+/**
+ * Grant or update a user's admin role + permissions. Requires 'manage_admins'.
+ */
+export async function grantAdmin(userId: string, permissions: string[]) {
+  const actorId = await assertPermission("manage_admins");
+  const perms = sanitizePermissions(permissions);
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from("admin_users")
+    .upsert(
+      { user_id: userId, permissions: perms },
+      { onConflict: "user_id" },
+    );
+  if (error) {
+    throw new Error("Kunne ikke opdatere admin-rollen.");
+  }
+
+  await audit(actorId, "update_admin", "user", userId, {
+    email: await emailOf(admin, userId),
+    permissions: perms,
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/team");
+}
+
+/**
+ * Send a password-reset email to a user. Requires 'moderate'.
+ */
+export async function sendPasswordReset(userId: string) {
+  const actorId = await assertPermission("moderate");
+  const admin = createAdminClient();
+  const email = await emailOf(admin, userId);
+  if (!email) {
+    throw new Error("Brugeren har ingen e-mail.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getSiteURL()}/auth/confirm?next=/reset-password`,
+  });
+  if (error) {
+    throw new Error("Kunne ikke sende nulstillingsmail.");
+  }
+
+  await audit(actorId, "send_password_reset", "user", userId, { email });
+  revalidatePath(`/admin/users/${userId}`);
+}
+
+/**
+ * Resend the signup confirmation email to an unconfirmed user. Requires
+ * 'moderate'.
+ */
+export async function adminResendConfirmation(userId: string) {
+  const actorId = await assertPermission("moderate");
+  const admin = createAdminClient();
+  const email = await emailOf(admin, userId);
+  if (!email) {
+    throw new Error("Brugeren har ingen e-mail.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${getSiteURL()}/auth/confirm` },
+  });
+  if (error) {
+    throw new Error("Kunne ikke sende bekræftelsesmail.");
+  }
+
+  await audit(actorId, "resend_confirmation", "user", userId, { email });
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 // ===========================================================================

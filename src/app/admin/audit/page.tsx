@@ -65,6 +65,12 @@ function describe(r: AuditRow, emailById: Map<string, string>): string {
       return `${actor} ændrede ${who}'s tilladelser til: ${perms}`;
     case "remove_admin":
       return `${actor} fjernede admin-adgang for ${who}`;
+    case "update_profile":
+      return `${actor} opdaterede profilen for ${who}`;
+    case "send_password_reset":
+      return `${actor} sendte en nulstillingsmail til ${who}`;
+    case "resend_confirmation":
+      return `${actor} gensendte bekræftelsesmailen til ${who}`;
     default:
       return `${actor}: ${r.action}`;
   }

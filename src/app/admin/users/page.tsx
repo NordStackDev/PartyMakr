@@ -1,8 +1,8 @@
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/guard";
-import { banUser, unbanUser, removeUser } from "@/lib/admin/actions";
-import { ModerationButton } from "@/components/admin/moderation-button";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -21,9 +21,7 @@ type Profile = {
 };
 
 export default async function AdminUsersPage() {
-  const { userId: currentUserId, permissions } =
-    await requirePermission("users");
-  const canModerate = permissions.includes("moderate");
+  await requirePermission("users");
   const supabase = await createClient();
 
   const { data: profiles } = await supabase
@@ -50,13 +48,11 @@ export default async function AdminUsersPage() {
       <p className="text-sm text-zinc-500">{rows.length} brugere</p>
 
       <ul className="space-y-2">
-        {rows.map((u) => {
-          const banned = !!u.banned_at;
-          const isSelf = u.id === currentUserId;
-          return (
-            <li
-              key={u.id}
-              className="glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
+        {rows.map((u) => (
+          <li key={u.id}>
+            <Link
+              href={`/admin/users/${u.id}`}
+              className="glass-card flex items-center justify-between gap-3 rounded-2xl p-4 transition hover:bg-white/[0.07]"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">
@@ -64,51 +60,17 @@ export default async function AdminUsersPage() {
                 </p>
                 <p className="mt-0.5 text-xs text-zinc-500">
                   Oprettet {formatDate(u.created_at)}
-                  {banned ? (
+                  {u.banned_at ? (
                     <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-red-300">
                       Blokeret
                     </span>
                   ) : null}
                 </p>
               </div>
-
-              {isSelf ? (
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-zinc-300">
-                  Dig
-                </span>
-              ) : !canModerate ? null : (
-                <div className="flex shrink-0 gap-2">
-                  {banned ? (
-                    <ModerationButton
-                      action={unbanUser.bind(null, u.id)}
-                      confirm="Ophæv udelukkelsen af denne bruger?"
-                      pendingText="Ophæver…"
-                      variant="neutral"
-                    >
-                      Ophæv udelukkelse
-                    </ModerationButton>
-                  ) : (
-                    <ModerationButton
-                      action={banUser.bind(null, u.id)}
-                      confirm="Udeluk denne bruger? De kan ikke logge ind igen."
-                      pendingText="Udelukker…"
-                      variant="neutral"
-                    >
-                      Udeluk
-                    </ModerationButton>
-                  )}
-                  <ModerationButton
-                    action={removeUser.bind(null, u.id)}
-                    confirm="Slet denne bruger permanent? Alle deres fester, invitationer og RSVP'er slettes også. Dette kan ikke fortrydes."
-                    pendingText="Sletter…"
-                  >
-                    Slet
-                  </ModerationButton>
-                </div>
-              )}
-            </li>
-          );
-        })}
+              <span className="shrink-0 text-zinc-500">→</span>
+            </Link>
+          </li>
+        ))}
       </ul>
     </div>
   );
