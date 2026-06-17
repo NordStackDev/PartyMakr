@@ -44,7 +44,7 @@ function fillFor(going: number, capacity: number | null): Fill {
 function partyIcon(color: string) {
   return L.divIcon({
     className: "",
-    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};border:2px solid #120d22;box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
+    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });

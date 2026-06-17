@@ -98,14 +98,14 @@ export function BottomNav() {
           />
         ))}
 
-        {/* Raised central "Opret" FAB */}
+        {/* Central "Opret" action — a gold button seated inside the bar */}
         <Link
           href="/parties/new"
           aria-label="Opret fest"
-          className="-mt-5 flex flex-1 flex-col items-center justify-start gap-1 pt-1"
+          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
         >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-lg shadow-amber-500/40 transition active:brightness-95">
-            <Plus size={26} strokeWidth={2.5} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-md shadow-amber-500/30 transition active:brightness-95">
+            <Plus size={22} strokeWidth={2.6} />
           </span>
           <span className="text-[10px] font-semibold text-amber-300">Opret</span>
         </Link>
