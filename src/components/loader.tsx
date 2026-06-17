@@ -26,8 +26,8 @@ export function Loader({
           <Image
             src="/pm-mark.png"
             alt="PartyMakr"
-            width={96}
-            height={96}
+            width={86}
+            height={86}
             priority
             style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
           />
