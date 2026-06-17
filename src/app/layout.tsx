@@ -34,6 +34,11 @@ export const viewport: Viewport = {
   // Pinch-zoom intentionally left enabled for WCAG 2.2 (no maximumScale lock).
 };
 
+// Run the server functions next to the Supabase project (eu-central-1 /
+// Frankfurt) so auth + DB round-trips stay in-region instead of crossing the
+// Atlantic. Cascades to every route under the root layout.
+export const preferredRegion = "fra1";
+
 export default function RootLayout({
   children,
 }: Readonly<{
