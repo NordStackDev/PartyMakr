@@ -55,12 +55,12 @@ export default async function AdminUserDetailPage({
       <div>
         <Link
           href="/admin/users"
-          className="text-sm text-zinc-400 hover:text-zinc-200"
+          className="text-sm text-zinc-300 hover:text-zinc-200"
         >
           ← Brugere
         </Link>
         <h1 className="mt-2 text-lg font-semibold text-white">{email}</h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
           <span>Oprettet {formatDate(profile.created_at)}</span>
           <span
             className={`rounded-full px-2 py-0.5 ${

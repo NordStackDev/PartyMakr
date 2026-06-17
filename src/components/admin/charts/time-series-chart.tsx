@@ -47,7 +47,7 @@ export function TimeSeriesChart({
     <div className="flex w-full gap-2">
       {/* y-axis */}
       <div
-        className="flex w-6 shrink-0 flex-col justify-between text-right text-[10px] text-zinc-500"
+        className="flex w-6 shrink-0 flex-col justify-between text-right text-[10px] text-zinc-400"
         style={{ height: H }}
       >
         {yLabels.map((v, i) => (
@@ -115,7 +115,7 @@ export function TimeSeriesChart({
           ))}
         </svg>
 
-        <div className="mt-1 flex justify-between text-[10px] text-zinc-500">
+        <div className="mt-1 flex justify-between text-[10px] text-zinc-400">
           {ticks.map((t) => (
             <span key={t}>{xLabel(data[t])}</span>
           ))}

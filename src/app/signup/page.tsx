@@ -59,7 +59,7 @@ export default async function SignupPage({
               autoComplete="new-password"
               className="auth-input"
             />
-            <span className="mt-1 block text-xs text-zinc-500">
+            <span className="mt-1 block text-xs text-zinc-400">
               Mindst 8 tegn.
             </span>
           </label>
@@ -68,7 +68,7 @@ export default async function SignupPage({
           </SubmitButton>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-400">
+        <p className="mt-6 text-center text-sm text-zinc-300">
           Har du allerede en konto?{" "}
           <Link href="/login" className="auth-link">
             Log ind

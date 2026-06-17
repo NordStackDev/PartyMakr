@@ -65,7 +65,7 @@ export default async function AdminUsersPage({
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-white">Brugere</h1>
       <SearchBox placeholder="Søg på e-mail eller navn…" defaultValue={q} />
-      <p className="text-sm text-zinc-500">{all.length} brugere</p>
+      <p className="text-sm text-zinc-400">{all.length} brugere</p>
 
       <ul className="space-y-2">
         {rows.map((u) => (
@@ -78,7 +78,7 @@ export default async function AdminUsersPage({
                 <p className="truncate text-sm font-medium text-white">
                   {emailById.get(u.id) || u.display_name || u.username || u.id}
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-zinc-400">
                   Oprettet {formatDate(u.created_at)}
                   {u.banned_at ? (
                     <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-red-300">
@@ -87,12 +87,12 @@ export default async function AdminUsersPage({
                   ) : null}
                 </p>
               </div>
-              <span className="shrink-0 text-zinc-500">→</span>
+              <span className="shrink-0 text-zinc-400">→</span>
             </Link>
           </li>
         ))}
         {rows.length === 0 ? (
-          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-400">
             Ingen brugere fundet.
           </li>
         ) : null}

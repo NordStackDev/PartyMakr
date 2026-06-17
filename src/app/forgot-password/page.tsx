@@ -21,7 +21,7 @@ export default async function ForgotPasswordPage({
         <h1 className="text-xl font-semibold tracking-tight text-white">
           Nulstil din adgangskode
         </h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-zinc-300">
           Indtast din e-mail, så sender vi dig et nulstillingslink.
         </p>
 
@@ -47,7 +47,7 @@ export default async function ForgotPasswordPage({
           </SubmitButton>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-400">
+        <p className="mt-6 text-center text-sm text-zinc-300">
           Kom du i tanke om den?{" "}
           <Link href="/login" className="auth-link">
             Tilbage til log ind

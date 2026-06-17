@@ -32,7 +32,7 @@ export function AdminNav({ permissions }: { permissions: string[] }) {
             className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
               active
                 ? "bg-white/10 text-white"
-                : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                : "text-zinc-300 hover:bg-white/5 hover:text-zinc-200"
             }`}
           >
             {link.label}

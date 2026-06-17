@@ -18,12 +18,12 @@ export default async function DashboardPage() {
       <Brand tagline="Du er logget ind." />
 
       <div className="mt-8 w-full max-w-md">
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-zinc-300">
           Logget ind som{" "}
           <span className="font-mono text-zinc-200">{user?.email}</span>
         </p>
 
-        <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-400">
+        <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-300">
           Kortet med fester i nærheden kommer her.
         </p>
 

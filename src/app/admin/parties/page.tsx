@@ -60,7 +60,7 @@ export default async function AdminPartiesPage({
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-white">Fester</h1>
       <SearchBox placeholder="Søg på titel…" defaultValue={q} />
-      <p className="text-sm text-zinc-500">{total} fester</p>
+      <p className="text-sm text-zinc-400">{total} fester</p>
 
       <ul className="space-y-2">
         {rows.map((p) => (
@@ -82,17 +82,17 @@ export default async function AdminPartiesPage({
                     {p.visibility === "public" ? "Offentlig" : "Privat"}
                   </span>
                 </p>
-                <p className="mt-0.5 text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-zinc-400">
                   Vært: {emailById.get(p.host_id) || p.host_id} · Starter{" "}
                   {formatDate(p.starts_at)}
                 </p>
               </div>
-              <span className="shrink-0 text-zinc-500">→</span>
+              <span className="shrink-0 text-zinc-400">→</span>
             </Link>
           </li>
         ))}
         {rows.length === 0 ? (
-          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-400">
             Ingen fester fundet.
           </li>
         ) : null}

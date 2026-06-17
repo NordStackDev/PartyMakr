@@ -66,10 +66,10 @@ export function LiveRegistrationsChart({ series }: { series: Series }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold text-white">Registreringer</h2>
-          <span className="text-xs text-zinc-500">{total} i alt</span>
+          <span className="text-xs text-zinc-400">{total} i alt</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+          <span className="flex items-center gap-1.5 text-xs text-zinc-300">
             <span
               className={`inline-block h-2 w-2 rounded-full ${
                 live ? "bg-emerald-400" : "bg-zinc-600"
@@ -91,7 +91,7 @@ export function LiveRegistrationsChart({ series }: { series: Series }) {
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   range === r.key
                     ? "bg-white/15 text-white"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-zinc-300 hover:text-zinc-200"
                 }`}
               >
                 {r.label}

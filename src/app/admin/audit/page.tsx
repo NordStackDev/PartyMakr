@@ -199,7 +199,7 @@ export default async function AdminAuditPage({
         </div>
       </form>
 
-      <p className="text-sm text-zinc-500">{total} handlinger</p>
+      <p className="text-sm text-zinc-400">{total} handlinger</p>
 
       <ul className="space-y-2">
         {rows.map((r) => (
@@ -208,13 +208,13 @@ export default async function AdminAuditPage({
             className="glass-card flex items-baseline justify-between gap-3 rounded-2xl p-4"
           >
             <p className="text-sm text-zinc-100">{describe(r, emailById)}</p>
-            <span className="shrink-0 text-xs text-zinc-500">
+            <span className="shrink-0 text-xs text-zinc-400">
               {formatDate(r.created_at)}
             </span>
           </li>
         ))}
         {rows.length === 0 ? (
-          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-400">
             Ingen handlinger fundet.
           </li>
         ) : null}

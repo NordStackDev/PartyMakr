@@ -13,7 +13,7 @@ export default async function AdminOverviewPage() {
   const permissions = await getPermissions();
   if (!permissions.includes("overview")) {
     return (
-      <div className="glass-card rounded-2xl p-8 text-center text-sm text-zinc-400">
+      <div className="glass-card rounded-2xl p-8 text-center text-sm text-zinc-300">
         Vælg en sektion i menuen ovenfor.
       </div>
     );

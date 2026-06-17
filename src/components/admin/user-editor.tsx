@@ -224,7 +224,7 @@ function AdminRoleSection({
           className={`rounded-full px-2.5 py-0.5 text-xs ${
             isAdmin
               ? "bg-amber-400/15 text-amber-300"
-              : "bg-white/10 text-zinc-400"
+              : "bg-white/10 text-zinc-300"
           }`}
         >
           {isAdmin ? "Admin" : "Almindelig bruger"}

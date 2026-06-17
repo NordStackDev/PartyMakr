@@ -25,13 +25,13 @@ export default async function AdminLayout({
               <p className="text-sm font-bold leading-none text-white">
                 PartyMakr
               </p>
-              <p className="mt-0.5 text-xs text-zinc-500">Admin</p>
+              <p className="mt-0.5 text-xs text-zinc-400">Admin</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="text-sm text-zinc-400 hover:text-zinc-200"
+              className="text-sm text-zinc-300 hover:text-zinc-200"
             >
               Tilbage til app
             </Link>

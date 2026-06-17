@@ -79,7 +79,7 @@ export default async function AdminInvitesPage({
             className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
               activeStatus === s
                 ? "bg-white/15 text-white"
-                : "bg-white/5 text-zinc-400 hover:text-zinc-200"
+                : "bg-white/5 text-zinc-300 hover:text-zinc-200"
             }`}
           >
             {s ? STATUS_LABEL[s] : "Alle"}
@@ -87,7 +87,7 @@ export default async function AdminInvitesPage({
         ))}
       </form>
 
-      <p className="text-sm text-zinc-500">{total} invitationer</p>
+      <p className="text-sm text-zinc-400">{total} invitationer</p>
 
       <ul className="space-y-2">
         {rows.map((i) => (
@@ -102,7 +102,7 @@ export default async function AdminInvitesPage({
                   {STATUS_LABEL[i.status] ?? i.status}
                 </span>
               </p>
-              <p className="mt-0.5 text-xs text-zinc-500">
+              <p className="mt-0.5 text-xs text-zinc-400">
                 Inviteret: {emailById.get(i.invitee_id) || i.invitee_id} ·{" "}
                 {formatDate(i.invited_at)}
               </p>
@@ -119,7 +119,7 @@ export default async function AdminInvitesPage({
           </li>
         ))}
         {rows.length === 0 ? (
-          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-400">
             Ingen invitationer fundet.
           </li>
         ) : null}

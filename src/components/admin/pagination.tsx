@@ -40,7 +40,7 @@ export function Pagination({
       ) : (
         <span />
       )}
-      <span className="text-xs text-zinc-500">
+      <span className="text-xs text-zinc-400">
         Side {page} af {pageCount}
       </span>
       {page < pageCount ? (

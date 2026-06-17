@@ -81,7 +81,7 @@ export function AddAdminForm() {
   return (
     <div className="glass-card rounded-2xl p-5">
       <h2 className="text-sm font-semibold text-white">Inviter admin</h2>
-      <p className="mt-1 text-xs text-zinc-500">
+      <p className="mt-1 text-xs text-zinc-400">
         Vælg hvilke sektioner og handlinger de får adgang til.
       </p>
 

@@ -31,7 +31,7 @@ export default async function ResetPasswordPage({
         <h1 className="text-xl font-semibold tracking-tight text-white">
           Vælg en ny adgangskode
         </h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-zinc-300">
           Vælg en ny adgangskode til {user.email}.
         </p>
 
@@ -52,7 +52,7 @@ export default async function ResetPasswordPage({
               autoComplete="new-password"
               className="auth-input"
             />
-            <span className="mt-1 block text-xs text-zinc-500">
+            <span className="mt-1 block text-xs text-zinc-400">
               Mindst 8 tegn.
             </span>
           </label>

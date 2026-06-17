@@ -73,7 +73,7 @@ export function Donut({
               style={{ background: s.color }}
             />
             {s.label}
-            <span className="text-zinc-500">{s.value}</span>
+            <span className="text-zinc-400">{s.value}</span>
           </li>
         ))}
       </ul>

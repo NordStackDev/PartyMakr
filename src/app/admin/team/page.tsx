@@ -33,7 +33,7 @@ export default async function AdminTeamPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-lg font-semibold text-white">Admins</h1>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-zinc-400">
           {rows.length} admin{rows.length === 1 ? "" : "s"} · styr hvad hver
           enkelt kan se og gøre.
         </p>

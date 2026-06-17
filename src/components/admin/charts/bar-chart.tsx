@@ -13,7 +13,7 @@ export function BarChart({ data }: { data: BarDatum[] }) {
         <div key={d.label}>
           <div className="mb-1 flex items-baseline justify-between text-xs">
             <span className="text-zinc-300">{d.label}</span>
-            <span className="font-medium text-zinc-400">{d.value}</span>
+            <span className="font-medium text-zinc-300">{d.value}</span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
             <div

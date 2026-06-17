@@ -26,7 +26,7 @@ export function Loader({
         />
       ) : null}
       <span className="pm-spinner" />
-      {label ? <p className="text-sm text-zinc-400">{label}</p> : null}
+      {label ? <p className="text-sm text-zinc-300">{label}</p> : null}
     </div>
   );
 }

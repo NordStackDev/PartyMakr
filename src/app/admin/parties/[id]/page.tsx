@@ -94,12 +94,12 @@ export default async function AdminPartyDetailPage({
       <div>
         <Link
           href="/admin/parties"
-          className="text-sm text-zinc-400 hover:text-zinc-200"
+          className="text-sm text-zinc-300 hover:text-zinc-200"
         >
           ← Fester
         </Link>
         <h1 className="mt-2 text-lg font-semibold text-white">{p.title}</h1>
-        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
           <span>Vært: {emailById.get(p.host_id) || p.host_id}</span>
           <span>· Starter {formatDate(p.starts_at)}</span>
           {p.ends_at ? <span>· Slutter {formatDate(p.ends_at)}</span> : null}
@@ -132,7 +132,7 @@ export default async function AdminPartyDetailPage({
           Deltagere ({attendeeRows.length})
         </h2>
         {attendeeRows.length === 0 ? (
-          <p className="text-sm text-zinc-500">Ingen RSVP&apos;er endnu.</p>
+          <p className="text-sm text-zinc-400">Ingen RSVP&apos;er endnu.</p>
         ) : (
           <ul className="space-y-1.5">
             {attendeeRows.map((a) => (
@@ -143,7 +143,7 @@ export default async function AdminPartyDetailPage({
                 <span className="truncate text-zinc-200">
                   {emailById.get(a.user_id) || a.user_id}
                 </span>
-                <span className="shrink-0 text-xs text-zinc-500">
+                <span className="shrink-0 text-xs text-zinc-400">
                   {RSVP_STATUS[a.status] ?? a.status}
                 </span>
               </li>
@@ -157,7 +157,7 @@ export default async function AdminPartyDetailPage({
           Invitationer ({inviteRows.length})
         </h2>
         {inviteRows.length === 0 ? (
-          <p className="text-sm text-zinc-500">Ingen invitationer.</p>
+          <p className="text-sm text-zinc-400">Ingen invitationer.</p>
         ) : (
           <ul className="space-y-2">
             {inviteRows.map((i) => (

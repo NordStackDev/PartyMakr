@@ -95,7 +95,7 @@ export default async function LoginPage({
           </SubmitButton>
         </form>
 
-        <p className="mt-6 text-center text-sm text-zinc-400">
+        <p className="mt-6 text-center text-sm text-zinc-300">
           Ingen konto?{" "}
           <Link href="/signup" className="auth-link">
             Opret en
