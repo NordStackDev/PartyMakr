@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import { BottomNav } from "@/components/nav/bottom-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <div className="club-bg relative flex min-h-screen flex-col items-center justify-center sm:px-4">
+        <div className="club-bg relative flex min-h-dvh flex-col items-center justify-center sm:px-4">
           {/* Neon club glow */}
           <div
             aria-hidden
@@ -49,8 +50,9 @@ export default function RootLayout({
             <div className="glow-c absolute -bottom-10 left-1/4 h-96 w-96 rounded-full bg-amber-400/45 blur-3xl" />
           </div>
 
-          <div className="glass-card relative flex min-h-screen w-full max-w-[420px] flex-1 flex-col pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:min-h-0 sm:pt-0 sm:shadow-2xl sm:rounded-[2rem] sm:overflow-hidden">
-            {children}
+          <div className="glass-card relative flex h-dvh w-full max-w-[420px] flex-col overflow-hidden pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:h-[860px] sm:max-h-[90vh] sm:pt-0 sm:shadow-2xl sm:rounded-[2rem]">
+            <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
+            <BottomNav />
           </div>
         </div>
       </body>

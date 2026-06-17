@@ -33,14 +33,11 @@ export default async function MyPartiesPage() {
   const parties = (data ?? []) as Party[];
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5">
+    <main className="flex flex-1 flex-col px-5 py-5 pb-8">
       <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard"
-          className="text-sm text-zinc-300 hover:text-zinc-100"
-        >
-          ← Kort
-        </Link>
+        <h1 className="text-xl font-semibold tracking-tight text-white">
+          Mine fester
+        </h1>
         <Link
           href="/parties/new"
           className="rounded-full bg-[#FCBE4F] px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
@@ -48,10 +45,6 @@ export default async function MyPartiesPage() {
           + Opret fest
         </Link>
       </div>
-
-      <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
-        Mine fester
-      </h1>
 
       <ul className="mt-5 space-y-2">
         {parties.map((p) => (

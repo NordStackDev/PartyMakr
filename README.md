@@ -14,7 +14,7 @@ PartyMakr is a social app for discovering parties around you. Unlike swipe-based
 
 1. **Sign up / log in** to create an account.
 2. **Share your location** so the app can find parties near you.
-3. **Browse the map** to see parties in your area — both public events and private parties that have been shared with you.
+3. **Browse the map** to see parties in your area, both public events and private parties that have been shared with you.
 4. **Create your own party**, set it as public or private, and invite people.
 
 ### Core features (MVP)
@@ -56,7 +56,7 @@ PartyMakr is a social app for discovering parties around you. Unlike swipe-based
 
 PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning til swipe-baserede apps som Tinder er PartyMakr bygget op om et direkte produkt til brugeren som gør det lettere og finde fest eller sammenkomst: når du åbner appen, ser du faktiske fester, der finder sted i nærheden af din placering, i stedet for at scrolle gennem profiler. Det gør oplevelsen mindre overfladisk og centreret om rigtige events frem for udseende.
 
-### Sådan fungerer det
+Sådan fungerer det
 
 1. **Opret bruger / log ind** for at oprette en konto.
 2. **Del din placering**, så appen kan finde fester i nærheden.
@@ -65,12 +65,12 @@ PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning
 
 ### Kernefunktioner (MVP)
 
-- Brugerlogin (email/adgangskode, social login senere)
-- Placeringstilladelse og live kortvisning
-- Opret, rediger og slet fester
-- Offentlig vs. privat synlighed
-- Festdetaljer: titel, beskrivelse, placering, tidspunkt, vært, gæsteliste
-- Find fester inden for en justerbar radius
+- Brugerlogin (email/adgangskode måske telefonnummer senere?, social login senere også såsom facebook, instagram google?)
+- Placeringstilladelse og live kortvisning - SKAL godkendes af brugeren grundet GDPR.
+- Opret, rediger og slet fester, samt overvåge dem indei admin panelet.
+- Offentlig vs. privat synlighed p åfester.
+- Festdetaljer: titel, beskrivelse, placering, tidspunkt, vært, gæsteliste, andre ting?
+- Find fester inden for en justerbar radius via en slider på indstillinger.
 
 ### Tech stack
 
@@ -91,7 +91,8 @@ PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning
 ### Hvorfor netop denne stack
 
 - **Next.js + Vercel**: hurtig udvikling, serverless deploy, god udvikleroplevelse.
-- **Supabase**: Postgres med indbygget auth, row-level security, realtime og storage — perfekt for et lille team, og skalerer med jer.
+- **Supabase**: Postgres med indbygget auth, row-level security, realtime og storage — perfekt for et lille team, og skalerer med jer. 
+- **Fast API**: (Udvikles i Python) når vi skal skalere dataen, og der kommer mange på, skal der udvikles et API.
 - **Web-først**: én kodebase i starten; native apps kommer, når produktet er valideret.
 
 ---
@@ -133,7 +134,7 @@ brand classes live in `src/app/globals.css`.
 
 ### Gradients
 
-- **Wordmark · charts · logo:** `#FDE3A7 → #FCBE4F → #E8972E` (left → right).
+- **Wordmark · charts · logo:** ` #FDE3A7 → #FCBE4F → #E8972E` (left → right).
 - **Background aurora:** a slowly rotating gold ↔ teal conic gradient over the
   dark base, with three drifting glow blobs (gold / teal / orange). All motion
   is paused under `prefers-reduced-motion`.
@@ -170,3 +171,22 @@ brand classes live in `src/app/globals.css`.
 > The app UI is in **Danish**; this design reference is kept in English for
 > convenience.
 
+Skrivelse fra det uformelle møde. 
+Man skal kunne sortere på alder fx? 
+
+Forretningsmodel
+Gæsterne skal betal hvis de gerne vil have vist detaljerne for en specifik fest. 
+
+Kollegier afholder nogen fester fx og gæsterne downloader appen fx for lad os sige en drink eller 2.
+
+Søgemuligheder 
+Alder
+Køn
+Sted
+
+Måske et billede på festen
+
+
+
+Rate hinadnen på fest vært / fest afholder 
+Rate hinaden som gæst også 

@@ -25,6 +25,33 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+ * Native-app behaviour. Strip the browser chrome that makes a PWA feel like a
+ * document: no blue tap flash, no text-selection / callout on the UI shell, no
+ * horizontal scroll. Body copy stays selectable.
+ * ------------------------------------------------------------------------- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+nav,
+header,
+label,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ---------------------------------------------------------------------------
  * PartyMakr brand kit — midnight base, gold (#FCBE4F) as the main color.
  * Reusable classes keep the screens consistent and legible on dark.
  * ------------------------------------------------------------------------- */

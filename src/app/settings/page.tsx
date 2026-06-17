@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -31,14 +30,8 @@ export default async function SettingsPage({
   const radius = profile?.search_radius_km ?? 25;
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5">
-      <Link
-        href="/dashboard"
-        className="text-sm text-zinc-300 hover:text-zinc-100"
-      >
-        ← Kort
-      </Link>
-      <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
+    <main className="flex flex-1 flex-col px-5 py-5 pb-8">
+      <h1 className="text-xl font-semibold tracking-tight text-white">
         Profil &amp; indstillinger
       </h1>
       <p className="mt-1 text-sm text-zinc-400">{user.email}</p>
