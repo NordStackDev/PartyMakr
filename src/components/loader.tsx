@@ -1,9 +1,9 @@
 import Image from "next/image";
 
 /**
- * Custom neon ring loader. Use `withLogo` for full-page/route loading states so
- * the brand mark shows while content streams in; the plain ring suits inline
- * spots.
+ * Custom neon ring loader. With `withLogo`, the brand mark sits inside the
+ * spinning ring (used for full-page/route loading states); otherwise it's a
+ * plain ring for inline spots.
  */
 export function Loader({
   label,
@@ -15,18 +15,27 @@ export function Loader({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-12">
       {withLogo ? (
-        <Image
-          src="/pm-mark.png"
-          alt="PartyMakr"
-          width={67}
-          height={67}
-          priority
-          className="drop-shadow-[0_0_16px_rgba(252,190,79,0.45)]"
-          style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
-        />
-      ) : null}
-      <span className="pm-spinner" />
-      {label ? <p className="text-sm text-zinc-300">{label}</p> : null}
+        <div
+          className="relative flex items-center justify-center"
+          style={{ width: 104, height: 104 }}
+        >
+          <span
+            className="pm-spinner absolute inset-0"
+            style={{ width: 104, height: 104 }}
+          />
+          <Image
+            src="/pm-mark.png"
+            alt="PartyMakr"
+            width={64}
+            height={64}
+            priority
+            style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
+          />
+        </div>
+      ) : (
+        <span className="pm-spinner" />
+      )}
+      {label ? <p className="text-sm text-zinc-400">{label}</p> : null}
     </div>
   );
 }
