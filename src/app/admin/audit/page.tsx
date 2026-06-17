@@ -15,6 +15,7 @@ const ACTION_LABEL: Record<string, string> = {
   revoke_invite: "Tilbagekaldte invitation",
   ban_user: "Udelukkede bruger",
   unban_user: "Ophævede udelukkelse",
+  delete_user: "Slettede bruger",
 };
 
 type AuditRow = {

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/admin/guard";
-import { banUser, unbanUser } from "@/lib/admin/actions";
+import { banUser, unbanUser, removeUser } from "@/lib/admin/actions";
 import { ModerationButton } from "@/components/admin/moderation-button";
 
 function formatDate(value: string | null): string {
@@ -21,7 +21,7 @@ type Profile = {
 };
 
 export default async function AdminUsersPage() {
-  await requireAdmin();
+  const currentUser = await requireAdmin();
   const supabase = await createClient();
 
   const { data: profiles } = await supabase
@@ -50,6 +50,7 @@ export default async function AdminUsersPage() {
       <ul className="space-y-2">
         {rows.map((u) => {
           const banned = !!u.banned_at;
+          const isSelf = u.id === currentUser.id;
           return (
             <li
               key={u.id}
@@ -68,23 +69,40 @@ export default async function AdminUsersPage() {
                   ) : null}
                 </p>
               </div>
-              {banned ? (
-                <ModerationButton
-                  action={unbanUser.bind(null, u.id)}
-                  confirm="Ophæv udelukkelsen af denne bruger?"
-                  pendingText="Ophæver…"
-                  variant="neutral"
-                >
-                  Ophæv udelukkelse
-                </ModerationButton>
+
+              {isSelf ? (
+                <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-zinc-300">
+                  Dig
+                </span>
               ) : (
-                <ModerationButton
-                  action={banUser.bind(null, u.id)}
-                  confirm="Udeluk denne bruger? De kan ikke logge ind igen."
-                  pendingText="Udelukker…"
-                >
-                  Udeluk
-                </ModerationButton>
+                <div className="flex shrink-0 gap-2">
+                  {banned ? (
+                    <ModerationButton
+                      action={unbanUser.bind(null, u.id)}
+                      confirm="Ophæv udelukkelsen af denne bruger?"
+                      pendingText="Ophæver…"
+                      variant="neutral"
+                    >
+                      Ophæv udelukkelse
+                    </ModerationButton>
+                  ) : (
+                    <ModerationButton
+                      action={banUser.bind(null, u.id)}
+                      confirm="Udeluk denne bruger? De kan ikke logge ind igen."
+                      pendingText="Udelukker…"
+                      variant="neutral"
+                    >
+                      Udeluk
+                    </ModerationButton>
+                  )}
+                  <ModerationButton
+                    action={removeUser.bind(null, u.id)}
+                    confirm="Slet denne bruger permanent? Alle deres fester, invitationer og RSVP'er slettes også. Dette kan ikke fortrydes."
+                    pendingText="Sletter…"
+                  >
+                    Slet
+                  </ModerationButton>
+                </div>
               )}
             </li>
           );

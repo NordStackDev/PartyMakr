@@ -89,6 +89,36 @@ export async function banUser(userId: string) {
 }
 
 /**
+ * Permanently delete a user from the system via the Auth Admin API. The auth
+ * user FK cascade removes their profile, and from there their parties, invites,
+ * and RSVPs. Irreversible. Admins cannot delete their own account. Audited.
+ */
+export async function removeUser(userId: string) {
+  const admin_user = await requireAdmin();
+  if (admin_user.id === userId) {
+    throw new Error("Du kan ikke slette din egen konto.");
+  }
+
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  // Record the audit entry BEFORE deletion (actor stays; target row is gone).
+  await supabase.rpc("log_admin_action", {
+    p_action: "delete_user",
+    p_target_type: "user",
+    p_target_id: userId,
+  });
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) {
+    throw new Error("Kunne ikke slette brugeren.");
+  }
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin");
+}
+
+/**
  * Lift a ban: clear the auth ban and the profile flag. Audited.
  */
 export async function unbanUser(userId: string) {
