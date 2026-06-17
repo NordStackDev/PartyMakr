@@ -35,7 +35,7 @@ export function TimeSeriesChart({
     ? `M ${x(0)},${H - padY} L ${points.join(" L ")} L ${x(n - 1)},${H - padY} Z`
     : "";
 
-  const ticks = n > 1 ? [0, Math.floor((n - 1) / 2), n - 1] : [0];
+  const ticks = [...new Set(n > 1 ? [0, Math.floor((n - 1) / 2), n - 1] : [0])];
   const yLabels = [maxY, Math.round(maxY / 2), 0];
 
   function xLabel(p?: TimePoint): string {
