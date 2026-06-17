@@ -18,8 +18,8 @@ export function Loader({
         <Image
           src="/pm-mark.png"
           alt="PartyMakr"
-          width={56}
-          height={56}
+          width={67}
+          height={67}
           priority
           className="drop-shadow-[0_0_16px_rgba(252,190,79,0.45)]"
           style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
