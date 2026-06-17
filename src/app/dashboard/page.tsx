@@ -24,8 +24,13 @@ export default async function DashboardPage() {
   const radiusKm = profile?.search_radius_km ?? 25;
 
   return (
-    <main className="flex flex-1 flex-col">
-      <header className="relative z-[1000] flex h-14 items-center justify-center overflow-hidden rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 shadow-lg shadow-black/30">
+    <main className="relative flex flex-1 flex-col">
+      <div className="absolute inset-0">
+        <MapHome radiusKm={radiusKm} />
+      </div>
+
+      {/* Logo floats over the map — no background bar */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex justify-center pt-1">
         <Image
           src="/PM_final.svg"
           alt="PartyMakr"
@@ -33,22 +38,19 @@ export default async function DashboardPage() {
           height={720}
           priority
           unoptimized
-          className="h-24 w-auto"
+          className="h-24 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]"
         />
-        {admin ? (
-          <Link
-            href="/admin"
-            aria-label="Admin"
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
-          >
-            <Shield size={16} />
-          </Link>
-        ) : null}
-      </header>
-
-      <div className="relative -mt-5 flex-1">
-        <MapHome radiusKm={radiusKm} />
       </div>
+
+      {admin ? (
+        <Link
+          href="/admin"
+          aria-label="Admin"
+          className="absolute right-4 top-4 z-[1000] rounded-full border border-white/15 bg-[#15102a]/80 p-2 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
+        >
+          <Shield size={16} />
+        </Link>
+      ) : null}
     </main>
   );
 }
