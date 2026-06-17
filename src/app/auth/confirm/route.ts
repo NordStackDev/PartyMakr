@@ -1,5 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,28 +13,28 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
 
-  // PKCE flow (the default for @supabase/ssr): the email link comes back with
-  // a `code` that we exchange for a session.
+  // IMPORTANT: use next/navigation `redirect` (not NextResponse.redirect) so the
+  // auth cookies written during verification are attached to the response —
+  // otherwise the session is lost and the user lands logged-out on the homepage.
+
+  // PKCE flow (the default for @supabase/ssr): the email link returns a `code`.
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url));
+      redirect(next);
     }
   }
 
-  // Token-hash flow: used when the Supabase email template is customised to
-  // send `{{ .TokenHash }}` + `type` instead.
+  // Token-hash flow: used when the Supabase email template sends
+  // `{{ .TokenHash }}` + `type` (works across devices — no PKCE verifier needed).
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url));
+      redirect(next);
     }
   }
 
-  return NextResponse.redirect(
-    new URL(
-      `/login?error=${encodeURIComponent("Ugyldigt eller udløbet bekræftelseslink.")}`,
-      request.url,
-    ),
+  redirect(
+    `/login?error=${encodeURIComponent("Ugyldigt eller udløbet bekræftelseslink.")}`,
   );
 }
