@@ -2,8 +2,9 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { LocateFixed } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -159,43 +160,72 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
   const [center, setCenter] = useState<[number, number] | null>(cached);
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
+  const [locating, setLocating] = useState(false);
+  const [supabase] = useState(createClient);
+  const mapRef = useRef<L.Map | null>(null);
   const loaded = useRef(false);
 
-  useEffect(() => {
-    // Guard against React StrictMode running the effect twice in dev.
-    if (loaded.current) return;
-    loaded.current = true;
-
-    const supabase = createClient();
-
-    async function load(lat: number, lng: number, isMe: boolean) {
-      setCenter((c) => c ?? [lat, lng]);
-      if (isMe) {
-        setMe([lat, lng]);
-        writePos(lat, lng);
-      }
+  const loadParties = useCallback(
+    async (lat: number, lng: number) => {
       const { data } = await supabase.rpc("nearby_parties", {
         lat,
         lng,
         radius_m: Math.round(radiusKm * 1000),
       });
       setParties((data ?? []) as NearbyParty[]);
-    }
+    },
+    [supabase, radiusKm],
+  );
+
+  useEffect(() => {
+    // Guard against React StrictMode running the effect twice in dev.
+    if (loaded.current) return;
+    loaded.current = true;
+
+    const onPos = (lat: number, lng: number, isMe: boolean) => {
+      setCenter((c) => c ?? [lat, lng]);
+      if (isMe) {
+        setMe([lat, lng]);
+        writePos(lat, lng);
+      }
+      loadParties(lat, lng);
+    };
 
     const fallback = readPos() ?? FALLBACK;
 
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => load(pos.coords.latitude, pos.coords.longitude, true),
-        () => load(fallback[0], fallback[1], false),
-        // Accept a position up to 10 min old so revisits resolve instantly
-        // and don't re-prompt.
+        (pos) => onPos(pos.coords.latitude, pos.coords.longitude, true),
+        () => onPos(fallback[0], fallback[1], false),
+        // Accept a position up to 10 min old so revisits resolve instantly.
         { timeout: 8000, maximumAge: 600000 },
       );
     } else {
-      load(fallback[0], fallback[1], false);
+      onPos(fallback[0], fallback[1], false);
     }
-  }, [radiusKm]);
+  }, [loadParties]);
+
+  // Re-locate the user and fly the map to them (tap target on the map).
+  const recenter = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setMe([lat, lng]);
+        writePos(lat, lng);
+        const map = mapRef.current;
+        if (map) {
+          map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.6 });
+        }
+        loadParties(lat, lng);
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+    );
+  }, [loadParties]);
 
   if (!center) {
     return (
@@ -206,76 +236,109 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
   }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={12}
-      maxZoom={MAX_ZOOM}
-      scrollWheelZoom
-      attributionControl={false}
-      className="pm-fullmap absolute inset-0"
-      style={{ background: "#120d22" }}
-    >
-      <AttributionControl position="bottomleft" prefix={false} />
-      <LayersControl position="bottomright">
-        <LayersControl.BaseLayer checked name="Satellit">
-          <TileLayer
-            url={TILES.satellite.url}
-            attribution={TILES.satellite.attribution}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Mørkt">
-          <TileLayer
-            url={TILES.dark.url}
-            attribution={TILES.dark.attribution}
-            subdomains={TILES.dark.subdomains}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-      </LayersControl>
-
-      {me ? <Marker position={me} icon={meIcon} /> : null}
-
-      {parties.map((p) => {
-        const center = fuzzedCenter(p.lat, p.lon, p.id);
-        const going = p.going_count ?? 0;
-        const fill = fillFor(going, p.capacity);
-        return (
-          <Fragment key={p.id}>
-            <Circle
-              center={center}
-              radius={AREA_RADIUS_M}
-              pathOptions={areaStyle(fill.color)}
+    <>
+      <MapContainer
+        center={center}
+        zoom={12}
+        maxZoom={MAX_ZOOM}
+        scrollWheelZoom
+        zoomControl
+        preferCanvas
+        attributionControl={false}
+        ref={mapRef}
+        className="pm-fullmap absolute inset-0"
+        style={{ background: "#120d22" }}
+      >
+        <AttributionControl position="bottomleft" prefix={false} />
+        <LayersControl position="bottomright">
+          <LayersControl.BaseLayer checked name="Satellit">
+            <TileLayer
+              url={TILES.satellite.url}
+              attribution={TILES.satellite.attribution}
+              maxZoom={MAX_ZOOM}
+              keepBuffer={4}
+              updateWhenIdle={false}
             />
-            <Marker position={center} icon={partyIcon(fill.color)}>
-              <Popup>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-zinc-900">{p.title}</p>
-                  <p className="text-xs text-zinc-600">{fmt(p.starts_at)}</p>
-                  <p className="text-xs text-zinc-500">{distance(p.distance_m)}</p>
-                  <p className="flex items-center gap-1.5 text-[11px] font-medium">
-                    <span
-                      style={{ background: fill.color }}
-                      className="inline-block h-2 w-2 rounded-full"
-                    />
-                    <span className="text-zinc-700">
-                      {fill.label}
-                      {p.capacity ? ` · ${going}/${p.capacity}` : ""}
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-zinc-400">Omtrentligt område</p>
-                  <Link
-                    href={`/parties/${p.id}`}
-                    className="inline-block pt-1 text-xs font-semibold text-amber-700 underline"
-                  >
-                    Se fest →
-                  </Link>
-                </div>
-              </Popup>
-            </Marker>
-          </Fragment>
-        );
-      })}
-    </MapContainer>
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Mørkt">
+            <TileLayer
+              url={TILES.dark.url}
+              attribution={TILES.dark.attribution}
+              subdomains={TILES.dark.subdomains}
+              maxZoom={MAX_ZOOM}
+              keepBuffer={4}
+              updateWhenIdle={false}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+
+        {me ? <Marker position={me} icon={meIcon} interactive={false} /> : null}
+
+        {parties.map((p) => {
+          const c = fuzzedCenter(p.lat, p.lon, p.id);
+          const going = p.going_count ?? 0;
+          const fill = fillFor(going, p.capacity);
+          return (
+            <Fragment key={p.id}>
+              {/* The whole area circle is the tap target (easy on a phone). */}
+              <Circle
+                center={c}
+                radius={AREA_RADIUS_M}
+                pathOptions={areaStyle(fill.color)}
+              >
+                <Popup>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-zinc-900">
+                      {p.title}
+                    </p>
+                    <p className="text-xs text-zinc-600">{fmt(p.starts_at)}</p>
+                    <p className="text-xs text-zinc-500">
+                      {distance(p.distance_m)}
+                    </p>
+                    <p className="flex items-center gap-1.5 text-[11px] font-medium">
+                      <span
+                        style={{ background: fill.color }}
+                        className="inline-block h-2 w-2 rounded-full"
+                      />
+                      <span className="text-zinc-700">
+                        {fill.label}
+                        {p.capacity ? ` · ${going}/${p.capacity}` : ""}
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-zinc-400">
+                      Omtrentligt område
+                    </p>
+                    <Link
+                      href={`/parties/${p.id}`}
+                      className="inline-block pt-1 text-xs font-semibold text-amber-700 underline"
+                    >
+                      Se fest →
+                    </Link>
+                  </div>
+                </Popup>
+              </Circle>
+              <Marker
+                position={c}
+                icon={partyIcon(fill.color)}
+                interactive={false}
+              />
+            </Fragment>
+          );
+        })}
+      </MapContainer>
+
+      {/* Find-my-location button — thumb-reachable, clears the bottom bar. */}
+      <button
+        type="button"
+        onClick={recenter}
+        aria-label="Find min placering"
+        className="absolute bottom-[calc(var(--nav-height)+2.75rem)] left-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
+      >
+        <LocateFixed
+          size={20}
+          className={locating ? "animate-spin text-amber-300" : ""}
+        />
+      </button>
+    </>
   );
 }
