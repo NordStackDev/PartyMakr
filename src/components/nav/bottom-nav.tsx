@@ -112,7 +112,7 @@ export function BottomNav() {
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-4 left-1/2 flex h-5 w-12 -translate-x-1/2 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition hover:text-white"
+          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition hover:text-white"
         >
           <ChevronUp size={16} strokeWidth={2.4} />
         </button>
