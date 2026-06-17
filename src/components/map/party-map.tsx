@@ -2,9 +2,9 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -48,6 +48,40 @@ function fmt(value: string): string {
 
 function distance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m væk` : `${(m / 1000).toFixed(1)} km væk`;
+}
+
+// Privacy: don't reveal a party's exact address on the discovery map. Each
+// party is drawn as an approximate area instead of a precise pin. The shown
+// centre is also nudged off the true point by a small, deterministic offset
+// (seeded by the party id) so the circle's centre isn't the real spot either —
+// stable across renders, but never exact.
+const AREA_RADIUS_M = 250; // size of the "somewhere around here" circle
+const MAX_OFFSET_M = 120; // how far the centre is nudged (always < radius)
+const areaStyle = {
+  color: "#FCBE4F",
+  weight: 1.5,
+  opacity: 0.7,
+  fillColor: "#FCBE4F",
+  fillOpacity: 0.15,
+};
+
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function fuzzedCenter(lat: number, lon: number, id: string): [number, number] {
+  const h = hashStr(id);
+  const angle = ((h % 360) * Math.PI) / 180;
+  const dist = (((h >>> 9) % 1000) / 1000) * MAX_OFFSET_M;
+  const dLat = (dist * Math.cos(angle)) / 111320;
+  const dLon =
+    (dist * Math.sin(angle)) / (111320 * Math.cos((lat * Math.PI) / 180));
+  return [lat + dLat, lon + dLon];
 }
 
 // Remember the last known position across navigations so the map appears
@@ -140,23 +174,30 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
 
       {me ? <Marker position={me} icon={meIcon} /> : null}
 
-      {parties.map((p) => (
-        <Marker key={p.id} position={[p.lat, p.lon]} icon={partyIcon}>
-          <Popup>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-zinc-900">{p.title}</p>
-              <p className="text-xs text-zinc-600">{fmt(p.starts_at)}</p>
-              <p className="text-xs text-zinc-500">{distance(p.distance_m)}</p>
-              <Link
-                href={`/parties/${p.id}`}
-                className="inline-block pt-1 text-xs font-semibold text-amber-700 underline"
-              >
-                Se fest →
-              </Link>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
+      {parties.map((p) => {
+        const center = fuzzedCenter(p.lat, p.lon, p.id);
+        return (
+          <Fragment key={p.id}>
+            <Circle center={center} radius={AREA_RADIUS_M} pathOptions={areaStyle} />
+            <Marker position={center} icon={partyIcon}>
+              <Popup>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-zinc-900">{p.title}</p>
+                  <p className="text-xs text-zinc-600">{fmt(p.starts_at)}</p>
+                  <p className="text-xs text-zinc-500">{distance(p.distance_m)}</p>
+                  <p className="text-[11px] text-zinc-400">Omtrentligt område</p>
+                  <Link
+                    href={`/parties/${p.id}`}
+                    className="inline-block pt-1 text-xs font-semibold text-amber-700 underline"
+                  >
+                    Se fest →
+                  </Link>
+                </div>
+              </Popup>
+            </Marker>
+          </Fragment>
+        );
+      })}
     </MapContainer>
   );
 }
