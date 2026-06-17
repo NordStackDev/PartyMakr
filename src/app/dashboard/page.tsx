@@ -1,12 +1,26 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { signOut } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
 import { MapHome } from "@/components/map/map-home";
 
 export default async function DashboardPage() {
-  const admin = await isAdmin();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [admin, { data: profile }] = await Promise.all([
+    isAdmin(),
+    supabase
+      .from("profiles")
+      .select("search_radius_km")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
+
+  const radiusKm = profile?.search_radius_km ?? 25;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -19,36 +33,35 @@ export default async function DashboardPage() {
           {admin ? (
             <Link
               href="/admin"
-              className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+              className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
             >
               Admin
             </Link>
           ) : null}
           <Link
             href="/parties/mine"
-            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+            className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
           >
             Mine fester
           </Link>
           <Link
             href="/parties/new"
-            className="rounded-full bg-[#FCBE4F] px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
+            className="rounded-full bg-[#FCBE4F] px-2.5 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
           >
-            + Opret fest
+            + Opret
           </Link>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
-            >
-              Log ud
-            </button>
-          </form>
+          <Link
+            href="/settings"
+            aria-label="Indstillinger"
+            className="rounded-full border border-white/15 px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+          >
+            ⚙
+          </Link>
         </div>
       </header>
 
       <div className="relative flex-1">
-        <MapHome />
+        <MapHome radiusKm={radiusKm} />
       </div>
     </main>
   );

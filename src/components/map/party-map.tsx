@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 
@@ -24,7 +24,6 @@ type NearbyParty = {
 
 // Copenhagen fallback if geolocation is denied/unavailable.
 const FALLBACK: [number, number] = [55.6761, 12.5683];
-const RADIUS_M = 50000;
 
 const partyIcon = L.divIcon({
   className: "",
@@ -51,12 +50,17 @@ function distance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m væk` : `${(m / 1000).toFixed(1)} km væk`;
 }
 
-export default function PartyMap() {
+export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
   const [center, setCenter] = useState<[number, number] | null>(null);
   const [me, setMe] = useState<[number, number] | null>(null);
   const [parties, setParties] = useState<NearbyParty[]>([]);
+  const loaded = useRef(false);
 
   useEffect(() => {
+    // Guard against React StrictMode running the effect twice in dev.
+    if (loaded.current) return;
+    loaded.current = true;
+
     const supabase = createClient();
 
     async function load(lat: number, lng: number, isMe: boolean) {
@@ -65,7 +69,7 @@ export default function PartyMap() {
       const { data } = await supabase.rpc("nearby_parties", {
         lat,
         lng,
-        radius_m: RADIUS_M,
+        radius_m: Math.round(radiusKm * 1000),
       });
       setParties((data ?? []) as NearbyParty[]);
     }
@@ -79,11 +83,11 @@ export default function PartyMap() {
     } else {
       load(FALLBACK[0], FALLBACK[1], false);
     }
-  }, []);
+  }, [radiusKm]);
 
   if (!center) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-300">
+      <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-300">
         Finder din placering…
       </div>
     );
@@ -92,9 +96,9 @@ export default function PartyMap() {
   return (
     <MapContainer
       center={center}
-      zoom={13}
+      zoom={12}
       scrollWheelZoom
-      className="h-full w-full"
+      className="absolute inset-0"
       style={{ background: "#120d22" }}
     >
       <TileLayer
