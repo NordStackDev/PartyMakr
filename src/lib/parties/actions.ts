@@ -62,7 +62,12 @@ export async function createParty(formData: FormData) {
 
   if (error || !data) {
     redirect(
-      "/parties/new?error=" + encodeURIComponent("Kunne ikke oprette festen."),
+      "/parties/new?error=" +
+        encodeURIComponent(
+          error?.message
+            ? `Kunne ikke oprette festen: ${error.message}`
+            : "Kunne ikke oprette festen.",
+        ),
     );
   }
 
