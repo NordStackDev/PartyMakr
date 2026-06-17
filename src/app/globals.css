@@ -17,13 +17,13 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
- * PartyMakr "Neon Club" brand kit — midnight base, electric pink → violet.
- * Reusable classes keep the auth screens consistent and legible on dark.
+ * PartyMakr brand kit — midnight base, gold (#FCBE4F) as the main color.
+ * Reusable classes keep the screens consistent and legible on dark.
  * ------------------------------------------------------------------------- */
 @layer components {
   /* Gradient wordmark / accent text */
   .brand-gradient {
-    @apply bg-gradient-to-r from-pink-400 via-fuchsia-500 to-violet-500
+    @apply bg-gradient-to-r from-amber-200 via-[#FCBE4F] to-amber-500
       bg-clip-text text-transparent;
   }
 
@@ -32,25 +32,24 @@ body {
     @apply bg-[#0a0510];
   }
 
-  /* Frosted glass panel that lets the neon glow bleed through */
+  /* Frosted glass panel that lets the glow bleed through */
   .glass-card {
     @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
   }
 
-  /* Primary call-to-action: neon pill with glow */
+  /* Primary call-to-action: solid gold pill with dark text */
   .btn-primary {
     @apply inline-flex w-full items-center justify-center rounded-full
-      bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 py-2.5 text-sm
-      font-semibold text-white shadow-lg shadow-fuchsia-500/40 transition
-      hover:shadow-fuchsia-500/60 hover:brightness-110 active:brightness-95
-      disabled:opacity-60 disabled:hover:brightness-100 disabled:hover:shadow-fuchsia-500/40;
+      bg-[#FCBE4F] px-4 py-2.5 text-sm font-semibold text-zinc-950
+      shadow-lg shadow-amber-500/30 transition hover:bg-[#fdca6b]
+      active:brightness-95 disabled:opacity-60 disabled:hover:bg-[#FCBE4F];
   }
 
   /* Secondary action (e.g. resend) */
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-full border
-      border-fuchsia-400/40 px-4 py-1.5 text-sm font-semibold text-fuchsia-300
-      transition hover:bg-fuchsia-400/10 disabled:opacity-60;
+      border-amber-400/40 px-4 py-1.5 text-sm font-semibold text-amber-300
+      transition hover:bg-amber-400/10 disabled:opacity-60;
   }
 
   /* Outline / ghost button on dark */
@@ -64,7 +63,7 @@ body {
   .auth-input {
     @apply mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5
       text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition
-      focus:border-fuchsia-400/60 focus:ring-2 focus:ring-fuchsia-500/30;
+      focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/30;
   }
 
   .auth-label {
@@ -72,7 +71,7 @@ body {
   }
 
   .auth-link {
-    @apply font-semibold text-fuchsia-300 underline-offset-4 hover:underline;
+    @apply font-semibold text-amber-300 underline-offset-4 hover:underline;
   }
 }
 
@@ -86,11 +85,11 @@ body {
 .aurora {
   background: conic-gradient(
     from 0deg at 50% 50%,
-    rgba(217, 70, 239, 0.35),
-    rgba(139, 92, 246, 0.3),
-    rgba(236, 72, 153, 0.32),
-    rgba(99, 102, 241, 0.3),
-    rgba(217, 70, 239, 0.35)
+    rgba(252, 190, 79, 0.34),
+    rgba(245, 158, 11, 0.28),
+    rgba(251, 191, 36, 0.3),
+    rgba(217, 119, 6, 0.26),
+    rgba(252, 190, 79, 0.34)
   );
   filter: blur(60px);
   transform: translate(-50%, -50%);
@@ -131,10 +130,10 @@ body {
   background: conic-gradient(
     from 0deg,
     transparent 0%,
-    rgba(236, 72, 153, 0.15) 25%,
-    #ec4899 65%,
-    #d946ef 85%,
-    #8b5cf6 100%
+    rgba(252, 190, 79, 0.15) 25%,
+    #fcbe4f 65%,
+    #f59e0b 85%,
+    #d97706 100%
   );
   -webkit-mask: radial-gradient(
     farthest-side,

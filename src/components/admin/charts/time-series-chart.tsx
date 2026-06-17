@@ -66,13 +66,13 @@ export function TimeSeriesChart({
         >
           <defs>
             <linearGradient id="pm-chart-stroke" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#f472b6" />
-              <stop offset="50%" stopColor="#d946ef" />
-              <stop offset="100%" stopColor="#8b5cf6" />
+              <stop offset="0%" stopColor="#FDE3A7" />
+              <stop offset="50%" stopColor="#FCBE4F" />
+              <stop offset="100%" stopColor="#E8972E" />
             </linearGradient>
             <linearGradient id="pm-chart-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d946ef" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#d946ef" stopOpacity="0" />
+              <stop offset="0%" stopColor="#FCBE4F" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#FCBE4F" stopOpacity="0" />
             </linearGradient>
           </defs>
 

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
   <defs>
     <linearGradient id="pm-mark" x1="6" y1="4" x2="42" y2="44">
-      <stop offset="0%" stop-color="#f472b6" />
-      <stop offset="55%" stop-color="#d946ef" />
-      <stop offset="100%" stop-color="#8b5cf6" />
+      <stop offset="0%" stop-color="#FDE3A7" />
+      <stop offset="55%" stop-color="#FCBE4F" />
+      <stop offset="100%" stop-color="#E8972E" />
     </linearGradient>
   </defs>
   <path d="M24 4c-8.284 0-15 6.5-15 14.5C9 29 24 44 24 44s15-15 15-25.5C39 10.5 32.284 4 24 4z" fill="url(#pm-mark)" />

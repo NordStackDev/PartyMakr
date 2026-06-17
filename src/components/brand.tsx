@@ -17,7 +17,7 @@ export function Brand({
   return (
     <div className="flex flex-col items-center text-center">
       <LogoMark
-        className={`${markSize} drop-shadow-[0_0_12px_rgba(217,70,239,0.45)]`}
+        className={`${markSize} drop-shadow-[0_0_12px_rgba(252,190,79,0.45)]`}
       />
       <span
         className={`mt-3 font-extrabold tracking-tight ${wordmark} brand-gradient`}

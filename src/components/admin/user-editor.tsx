@@ -223,7 +223,7 @@ function AdminRoleSection({
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs ${
             isAdmin
-              ? "bg-fuchsia-500/15 text-fuchsia-300"
+              ? "bg-amber-400/15 text-amber-300"
               : "bg-white/10 text-zinc-400"
           }`}
         >
@@ -241,7 +241,7 @@ function AdminRoleSection({
               type="checkbox"
               checked={selected.has(p.key)}
               onChange={(e) => toggle(p.key, e.target.checked)}
-              className="h-4 w-4 accent-fuchsia-500"
+              className="h-4 w-4 accent-amber-400"
             />
             {p.label}
           </label>

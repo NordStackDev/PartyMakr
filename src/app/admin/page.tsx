@@ -140,12 +140,12 @@ export default async function AdminOverviewPage() {
               {
                 label: "Offentlige",
                 value: data.partiesPublic,
-                color: "#d946ef",
+                color: "#FCBE4F",
               },
               {
                 label: "Private",
                 value: data.partiesPrivate,
-                color: "#8b5cf6",
+                color: "#9ca3af",
               },
             ]}
           />

@@ -34,7 +34,7 @@ function PermissionCheckboxes({
             type="checkbox"
             checked={selected.has(p.key)}
             onChange={(e) => onToggle(p.key, e.target.checked)}
-            className="h-4 w-4 accent-fuchsia-500"
+            className="h-4 w-4 accent-amber-400"
           />
           {p.label}
         </label>

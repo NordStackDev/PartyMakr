@@ -13,9 +13,9 @@ export function LogoMark({ className }: { className?: string }) {
     >
       <defs>
         <linearGradient id="pm-mark" x1="6" y1="4" x2="42" y2="44">
-          <stop offset="0%" stopColor="#f472b6" />
-          <stop offset="55%" stopColor="#d946ef" />
-          <stop offset="100%" stopColor="#8b5cf6" />
+          <stop offset="0%" stopColor="#FDE3A7" />
+          <stop offset="55%" stopColor="#FCBE4F" />
+          <stop offset="100%" stopColor="#E8972E" />
         </linearGradient>
       </defs>
       {/* Pin */}

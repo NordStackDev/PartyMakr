@@ -106,8 +106,8 @@ export default async function AdminPartyDetailPage({
           <span
             className={`rounded-full px-2 py-0.5 ${
               p.visibility === "public"
-                ? "bg-fuchsia-500/15 text-fuchsia-300"
-                : "bg-violet-500/15 text-violet-300"
+                ? "bg-amber-400/15 text-amber-300"
+                : "bg-zinc-500/20 text-zinc-300"
             }`}
           >
             {p.visibility === "public" ? "Offentlig" : "Privat"}

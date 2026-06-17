@@ -22,7 +22,7 @@ export function BarChart({ data }: { data: BarDatum[] }) {
                 width: `${(d.value / max) * 100}%`,
                 background:
                   d.color ??
-                  "linear-gradient(90deg, #f472b6, #d946ef, #8b5cf6)",
+                  "linear-gradient(90deg, #FDE3A7, #FCBE4F, #E8972E)",
               }}
             />
           </div>

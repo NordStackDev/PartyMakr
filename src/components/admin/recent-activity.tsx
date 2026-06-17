@@ -2,8 +2,8 @@ import type { ActivityItem } from "@/lib/admin/stats";
 
 const KIND = {
   signup: { label: "Ny konto", dot: "bg-emerald-400" },
-  party: { label: "Ny fest", dot: "bg-fuchsia-400" },
-  invite: { label: "Invitation", dot: "bg-violet-400" },
+  party: { label: "Ny fest", dot: "bg-amber-400" },
+  invite: { label: "Invitation", dot: "bg-orange-400" },
 } as const;
 
 function timeAgo(iso: string): string {

@@ -16,7 +16,7 @@ export function Loader({
     <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-12">
       {withLogo ? (
         <span style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}>
-          <LogoMark className="h-12 w-12 drop-shadow-[0_0_16px_rgba(217,70,239,0.5)]" />
+          <LogoMark className="h-12 w-12 drop-shadow-[0_0_16px_rgba(252,190,79,0.5)]" />
         </span>
       ) : null}
       <span className="pm-spinner" />
