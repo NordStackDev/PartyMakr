@@ -24,7 +24,7 @@ type NearbyParty = {
 
 // Copenhagen fallback if geolocation is denied/unavailable.
 const FALLBACK: [number, number] = [55.6761, 12.5683];
-const RADIUS_M = 15000;
+const RADIUS_M = 50000;
 
 const partyIcon = L.divIcon({
   className: "",

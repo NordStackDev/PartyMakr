@@ -25,6 +25,12 @@ export default async function DashboardPage() {
             </Link>
           ) : null}
           <Link
+            href="/parties/mine"
+            className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+          >
+            Mine fester
+          </Link>
+          <Link
             href="/parties/new"
             className="rounded-full bg-[#FCBE4F] px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-[#fdca6b]"
           >
