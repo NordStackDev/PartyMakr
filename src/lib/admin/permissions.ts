@@ -7,7 +7,7 @@ export const ADMIN_PERMISSIONS = [
   { key: "users", label: "Brugere" },
   { key: "parties", label: "Fester" },
   { key: "invites", label: "Invitationer" },
-  { key: "audit", label: "Logbog" },
+  { key: "audit", label: "Aktivitetslog" },
   { key: "moderate", label: "Moderation (handlinger)" },
   { key: "manage_admins", label: "Administrér admins" },
 ] as const;

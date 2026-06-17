@@ -10,7 +10,7 @@ const LINKS: { href: string; label: string; perm: PermissionKey }[] = [
   { href: "/admin/users", label: "Brugere", perm: "users" },
   { href: "/admin/parties", label: "Fester", perm: "parties" },
   { href: "/admin/invites", label: "Invitationer", perm: "invites" },
-  { href: "/admin/audit", label: "Logbog", perm: "audit" },
+  { href: "/admin/audit", label: "Aktivitetslog", perm: "audit" },
   { href: "/admin/team", label: "Admins", perm: "manage_admins" },
 ];
 
