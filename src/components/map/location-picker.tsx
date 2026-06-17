@@ -41,7 +41,7 @@ export default function LocationPicker({
           setReady(true);
         },
         () => setReady(true),
-        { timeout: 8000 },
+        { timeout: 8000, maximumAge: 600000 },
       );
       return;
     }

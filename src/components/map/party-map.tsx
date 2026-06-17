@@ -50,9 +50,34 @@ function distance(m: number): string {
   return m < 1000 ? `${Math.round(m)} m væk` : `${(m / 1000).toFixed(1)} km væk`;
 }
 
+// Remember the last known position across navigations so the map appears
+// instantly instead of re-running geolocation from scratch every time.
+const POS_KEY = "pm_last_pos";
+
+function readPos(): [number, number] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(POS_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as { lat: number; lng: number };
+    return [p.lat, p.lng];
+  } catch {
+    return null;
+  }
+}
+
+function writePos(lat: number, lng: number) {
+  try {
+    sessionStorage.setItem(POS_KEY, JSON.stringify({ lat, lng }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
-  const [center, setCenter] = useState<[number, number] | null>(null);
-  const [me, setMe] = useState<[number, number] | null>(null);
+  const cached = readPos();
+  const [center, setCenter] = useState<[number, number] | null>(cached);
+  const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const loaded = useRef(false);
 
@@ -64,8 +89,11 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
     const supabase = createClient();
 
     async function load(lat: number, lng: number, isMe: boolean) {
-      setCenter([lat, lng]);
-      if (isMe) setMe([lat, lng]);
+      setCenter((c) => c ?? [lat, lng]);
+      if (isMe) {
+        setMe([lat, lng]);
+        writePos(lat, lng);
+      }
       const { data } = await supabase.rpc("nearby_parties", {
         lat,
         lng,
@@ -74,14 +102,18 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
       setParties((data ?? []) as NearbyParty[]);
     }
 
+    const fallback = readPos() ?? FALLBACK;
+
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => load(pos.coords.latitude, pos.coords.longitude, true),
-        () => load(FALLBACK[0], FALLBACK[1], false),
-        { timeout: 8000 },
+        () => load(fallback[0], fallback[1], false),
+        // Accept a position up to 10 min old so revisits resolve instantly
+        // and don't re-prompt.
+        { timeout: 8000, maximumAge: 600000 },
       );
     } else {
-      load(FALLBACK[0], FALLBACK[1], false);
+      load(fallback[0], fallback[1], false);
     }
   }, [radiusKm]);
 
