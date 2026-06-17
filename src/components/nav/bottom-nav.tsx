@@ -3,13 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, Map, Plus, Ticket, User } from "lucide-react";
+import {
+  Bell,
+  ChevronUp,
+  LogOut,
+  Map,
+  Plus,
+  Ticket,
+  User,
+  Users,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/auth/actions";
 
 /** Routes that belong to the consumer app shell — the tab bar shows only here. */
-const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications"];
+const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications", "/friends"];
 
 type Tab = {
   href: string;
@@ -26,6 +36,12 @@ const TABS: Tab[] = [
   { href: "/settings", label: "Profil", icon: User, match: [] },
 ];
 
+/** Extra destinations surfaced in the pull-up menu (beyond the core tabs). */
+const MENU_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/friends", label: "Venner", icon: Users },
+  { href: "/settings", label: "Profil & indstillinger", icon: User },
+];
+
 function isActive(pathname: string, tab: Tab): boolean {
   if (pathname === tab.href) return true;
   return [tab.href, ...tab.match].some((p) => pathname.startsWith(`${p}/`));
@@ -34,13 +50,14 @@ function isActive(pathname: string, tab: Tab): boolean {
 export function BottomNav() {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
 
-  // Clear the badge as soon as the user lands on the notifications screen
-  // (that page marks the rows read). Render-phase reset — no effect needed.
+  // On navigation: clear the messages badge and close the pull-up menu.
   if (pathname !== prevPath) {
     setPrevPath(pathname);
     if (pathname.startsWith("/notifications") && unread !== 0) setUnread(0);
+    if (menuOpen) setMenuOpen(false);
   }
 
   useEffect(() => {
@@ -87,39 +104,107 @@ export function BottomNav() {
   if (!visible) return null;
 
   return (
-    <nav className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl border-t border-white/10 bg-[#120d22]/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-      <div className="relative flex items-stretch justify-around px-2">
-        {TABS.slice(0, 2).map((tab) => (
-          <TabLink
-            key={tab.href}
-            tab={tab}
-            active={isActive(pathname, tab)}
-            badge={tab.label === "Beskeder" ? unread : 0}
-          />
-        ))}
-
-        {/* Central "Opret" action — a gold button seated inside the bar */}
-        <Link
-          href="/parties/new"
-          aria-label="Opret fest"
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
+    <>
+      <nav className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl border-t border-white/10 bg-[#120d22]/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        {/* Pull-up handle — opens the menu */}
+        <button
+          type="button"
+          aria-label="Åbn menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+          className="absolute -top-4 left-1/2 flex h-5 w-12 -translate-x-1/2 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition hover:text-white"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-md shadow-amber-500/30 transition active:brightness-95">
-            <Plus size={22} strokeWidth={2.6} />
-          </span>
-          <span className="text-[10px] font-semibold text-amber-300">Opret</span>
-        </Link>
+          <ChevronUp size={16} strokeWidth={2.4} />
+        </button>
 
-        {TABS.slice(2).map((tab) => (
-          <TabLink
-            key={tab.href}
-            tab={tab}
-            active={isActive(pathname, tab)}
-            badge={tab.label === "Beskeder" ? unread : 0}
-          />
-        ))}
+        <div className="relative flex items-stretch justify-around px-2">
+          {TABS.slice(0, 2).map((tab) => (
+            <TabLink
+              key={tab.href}
+              tab={tab}
+              active={isActive(pathname, tab)}
+              badge={tab.label === "Beskeder" ? unread : 0}
+            />
+          ))}
+
+          {/* Central "Opret" action — a gold button seated inside the bar */}
+          <Link
+            href="/parties/new"
+            aria-label="Opret fest"
+            className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-md shadow-amber-500/30 transition active:brightness-95">
+              <Plus size={22} strokeWidth={2.6} />
+            </span>
+            <span className="text-[10px] font-semibold text-amber-300">Opret</span>
+          </Link>
+
+          {TABS.slice(2).map((tab) => (
+            <TabLink
+              key={tab.href}
+              tab={tab}
+              active={isActive(pathname, tab)}
+              badge={tab.label === "Beskeder" ? unread : 0}
+            />
+          ))}
+        </div>
+      </nav>
+
+      {/* Pull-up sheet. Rendered outside <nav> so its `fixed` anchors to the
+          phone-frame card (not the bar, which has its own backdrop-filter). */}
+      <div
+        className={`fixed inset-0 z-[1100] ${menuOpen ? "" : "pointer-events-none"}`}
+      >
+        <button
+          type="button"
+          aria-label="Luk menu"
+          tabIndex={menuOpen ? 0 : -1}
+          onClick={() => setMenuOpen(false)}
+          className={`absolute inset-0 bg-black/50 transition-opacity duration-200 ${
+            menuOpen ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div
+          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[#15102a] p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-300 ease-out ${
+            menuOpen ? "translate-y-0" : "translate-y-full"
+          }`}
+        >
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+          <nav className="flex flex-col gap-0.5">
+            {MENU_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
+                    active
+                      ? "bg-white/10 text-[#FCBE4F]"
+                      : "text-zinc-200 hover:bg-white/5"
+                  }`}
+                >
+                  <Icon size={20} />
+                  {item.label}
+                </Link>
+              );
+            })}
+
+            <form action={signOut} className="mt-1 border-t border-white/10 pt-1">
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/5"
+              >
+                <LogOut size={20} />
+                Log ud
+              </button>
+            </form>
+          </nav>
+        </div>
       </div>
-    </nav>
+    </>
   );
 }
 
