@@ -5,6 +5,7 @@ import { Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
 import { MapHome } from "@/components/map/map-home";
+import { BurgerMenu } from "@/components/nav/burger-menu";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -42,15 +43,18 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {admin ? (
-        <Link
-          href="/admin"
-          aria-label="Admin"
-          className="absolute right-4 top-4 z-[1000] rounded-full border border-white/15 bg-[#15102a]/80 p-2 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
-        >
-          <Shield size={16} />
-        </Link>
-      ) : null}
+      <div className="absolute right-4 top-4 z-[1000] flex items-center gap-2">
+        {admin ? (
+          <Link
+            href="/admin"
+            aria-label="Admin"
+            className="rounded-full border border-white/15 bg-[#15102a]/80 p-2 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
+          >
+            <Shield size={16} />
+          </Link>
+        ) : null}
+        <BurgerMenu />
+      </div>
     </main>
   );
 }

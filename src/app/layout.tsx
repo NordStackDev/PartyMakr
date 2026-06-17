@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
-import { FloatingMenu } from "@/components/nav/floating-menu";
+import { BottomNav } from "@/components/nav/bottom-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,7 +52,7 @@ export default function RootLayout({
 
           <div className="glass-card relative flex h-dvh w-full max-w-[420px] flex-col overflow-hidden pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:h-[860px] sm:max-h-[90vh] sm:pt-0 sm:shadow-2xl sm:rounded-[2rem]">
             <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
-            <FloatingMenu />
+            <BottomNav />
           </div>
         </div>
       </body>
