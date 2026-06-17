@@ -11,6 +11,7 @@ import {
   Popup,
   Circle,
   AttributionControl,
+  LayersControl,
 } from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
@@ -32,6 +33,29 @@ type NearbyParty = {
 
 // Copenhagen fallback if geolocation is denied/unavailable.
 const FALLBACK: [number, number] = [55.6761, 12.5683];
+
+// Base map tiles. Cap zoom (see MAX_ZOOM) so individual house numbers are never
+// shown — together with the fuzzed party circles this keeps exact spots private.
+const MAX_ZOOM = 16;
+const TILES = {
+  dark: {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics",
+    subdomains: "",
+  },
+  street: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    subdomains: "abc",
+  },
+};
 
 // Party fullness → colour. Green = room to spare, orange = almost full,
 // red = full. Parties without a capacity count as open (green).
@@ -191,16 +215,38 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
     <MapContainer
       center={center}
       zoom={12}
+      maxZoom={MAX_ZOOM}
       scrollWheelZoom
       attributionControl={false}
       className="pm-fullmap absolute inset-0"
       style={{ background: "#120d22" }}
     >
       <AttributionControl position="bottomleft" />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <LayersControl position="bottomright">
+        <LayersControl.BaseLayer checked name="Mørkt">
+          <TileLayer
+            url={TILES.dark.url}
+            attribution={TILES.dark.attribution}
+            subdomains={TILES.dark.subdomains}
+            maxZoom={MAX_ZOOM}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Satellit">
+          <TileLayer
+            url={TILES.satellite.url}
+            attribution={TILES.satellite.attribution}
+            maxZoom={MAX_ZOOM}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Gade">
+          <TileLayer
+            url={TILES.street.url}
+            attribution={TILES.street.attribution}
+            subdomains={TILES.street.subdomains}
+            maxZoom={MAX_ZOOM}
+          />
+        </LayersControl.BaseLayer>
+      </LayersControl>
 
       {me ? <Marker position={me} icon={meIcon} /> : null}
 

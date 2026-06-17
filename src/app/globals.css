@@ -119,6 +119,36 @@ label,
   bottom: calc(4.25rem + env(safe-area-inset-bottom));
 }
 
+/* Layer switcher — dark glass to match the app */
+.pm-fullmap .leaflet-control-layers {
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 13, 34, 0.85);
+  color: #f4f4f5;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.pm-fullmap .leaflet-control-layers-toggle {
+  /* Default icon is dark; invert it so it reads on the dark control */
+  filter: invert(1) brightness(1.6);
+}
+.pm-fullmap .leaflet-control-layers-expanded {
+  padding: 0.6rem 0.75rem;
+}
+.pm-fullmap .leaflet-control-layers label {
+  margin: 0.15rem 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.pm-fullmap .leaflet-control-layers-selector {
+  accent-color: #fcbe4f;
+  margin-right: 0.4rem;
+}
+.pm-fullmap .leaflet-control-layers-separator {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
 /* Native <select> dropdown options on dark inputs (otherwise light-on-light) */
 .auth-input option {
   background-color: #1b1530;
