@@ -75,6 +75,41 @@ body {
   }
 }
 
+/* Native <select> dropdown options on dark inputs (otherwise light-on-light) */
+.auth-input option {
+  background-color: #1b1530;
+  color: #f4f4f5;
+}
+
+/* Touch-friendly range slider (e.g. search radius) */
+.pm-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+.pm-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #fcbe4f;
+  border: 3px solid #120d22;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.pm-range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border: 3px solid #120d22;
+  border-radius: 9999px;
+  background: #fcbe4f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
 /* ---------------------------------------------------------------------------
  * Flowing neon background. A slowly rotating aurora plus drifting glow blobs
  * give a continuous sense of motion behind the glass. All motion is disabled

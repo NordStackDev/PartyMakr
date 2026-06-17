@@ -5,10 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { updateSettings } from "@/lib/profile/actions";
 import { signOut } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { RadiusSlider } from "@/components/settings/radius-slider";
 
 type SearchParams = Promise<{ saved?: string; error?: string }>;
-
-const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 250];
 
 export default async function SettingsPage({
   searchParams,
@@ -55,23 +54,7 @@ export default async function SettingsPage({
       ) : null}
 
       <form action={updateSettings} className="mt-6 space-y-4">
-        <label className="block">
-          <span className="auth-label">Søgeradius</span>
-          <select
-            name="search_radius_km"
-            defaultValue={String(radius)}
-            className="auth-input"
-          >
-            {RADIUS_OPTIONS.map((km) => (
-              <option key={km} value={km}>
-                {km} km
-              </option>
-            ))}
-          </select>
-          <span className="mt-1 block text-xs text-zinc-400">
-            Hvor langt væk fester vises på kortet.
-          </span>
-        </label>
+        <RadiusSlider name="search_radius_km" defaultValue={radius} />
 
         <label className="block">
           <span className="auth-label">Visningsnavn</span>
