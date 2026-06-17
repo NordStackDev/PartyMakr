@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="z-[1000] flex items-center justify-between gap-2 rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 py-2.5 shadow-lg shadow-black/30">
+      <header className="relative z-[1000] flex items-center justify-center rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 py-2.5 shadow-lg shadow-black/30">
         <Image
           src="/PM_final.svg"
           alt="PartyMakr"
@@ -33,13 +33,13 @@ export default async function DashboardPage() {
           height={720}
           priority
           unoptimized
-          className="h-8 w-auto"
+          className="h-11 w-auto"
         />
         {admin ? (
           <Link
             href="/admin"
             aria-label="Admin"
-            className="rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full border border-white/15 p-2 text-zinc-200 transition hover:bg-white/5"
           >
             <Shield size={16} />
           </Link>
