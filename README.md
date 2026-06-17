@@ -33,8 +33,8 @@ PartyMakr is a social app for discovering parties around you. Unlike swipe-based
 | Frontend         | Next.js (React) — App Router + TypeScript |
 | Hosting          | Vercel                                    |
 | Database & Auth  | Supabase (Postgres + Auth + Storage)      |
-| Maps             | Mapbox or Google Maps (TBD)               |
-| Styling          | Tailwind CSS (recommended)                |
+| Maps             | Leaflet + OpenStreetMap (no API key)      |
+| Styling          | Tailwind CSS v4                           |
 
 ### Roadmap
 
@@ -79,8 +79,8 @@ PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning
 | Frontend         | Next.js (React) — App Router + TypeScript  |
 | Hosting          | Vercel                                     |
 | Database & Auth  | Supabase (Postgres + Auth + Storage)       |
-| Kort             | Mapbox eller Google Maps (101: Tag stilling)       |
-| Styling          | Tailwind CSS (anbefalet)                   |
+| Kort             | Leaflet + OpenStreetMap (ingen API-nøgle)  |
+| Styling          | Tailwind CSS v4                            |
 
 ### Roadmap
 
@@ -93,3 +93,80 @@ PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning
 - **Next.js + Vercel**: hurtig udvikling, serverless deploy, god udvikleroplevelse.
 - **Supabase**: Postgres med indbygget auth, row-level security, realtime og storage — perfekt for et lille team, og skalerer med jer.
 - **Web-først**: én kodebase i starten; native apps kommer, når produktet er valideret.
+
+---
+
+## Design system
+
+A dark **"club" base with gold as the main colour** and a teal contrast accent
+(taken from the logo's party hat). Built with Tailwind CSS v4; the reusable
+brand classes live in `src/app/globals.css`.
+
+### Colour palette
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| **Gold — primary** | `#FCBE4F` | Main brand colour: primary buttons (dark text), links, highlights, party map markers |
+| Gold — hover | `#fdca6b` | Primary-button hover |
+| Gold — light | `#FDE3A7` | Gradient start (wordmark, charts, logo) |
+| Gold — deep | `#E8972E` | Gradient end |
+| **Teal — contrast** | `#63bfcb` | Secondary accent: aurora/glow, the "me" map marker |
+| Base / background | `#120d22` | App background, safe areas, glass base |
+| Glass | `white 4%` fill, `white 10%` border | Frosted cards (`.glass-card`) |
+
+### Text hierarchy (Tailwind `zinc`)
+
+| Level | Class | Use |
+| --- | --- | --- |
+| Primary | `text-white` / `zinc-100` | Headings, key values |
+| Secondary | `zinc-200` / `zinc-300` | Body, descriptions, labels |
+| Muted | `zinc-400` | Hints, timestamps, counts |
+
+### Status colours (semantic)
+
+| Meaning | Colour |
+| --- | --- |
+| Going / accepted / active | Emerald (`emerald-400`) |
+| Pending | Amber (`amber-400`) |
+| Declined / blocked / destructive | Red (`red-400`) |
+| Public / private party | Gold / muted zinc |
+
+### Gradients
+
+- **Wordmark · charts · logo:** `#FDE3A7 → #FCBE4F → #E8972E` (left → right).
+- **Background aurora:** a slowly rotating gold ↔ teal conic gradient over the
+  dark base, with three drifting glow blobs (gold / teal / orange). All motion
+  is paused under `prefers-reduced-motion`.
+
+### Typography
+
+- **Geist Sans** for UI and **Geist Mono** for code/emails, loaded via
+  `next/font`.
+
+### Logo & icons
+
+- **Logo:** a balloon mark + **PARTYMAKR** wordmark in gold; a standalone
+  balloon mark is used for headers and the favicon
+  (`public/pm-mark.png`, `src/app/icon.png`).
+- **Icons:** [lucide-react](https://lucide.dev) — one consistent line-icon set,
+  no emoji.
+
+### Reusable brand classes (`globals.css`)
+
+`brand-gradient` · `club-bg` · `glass-card` ·
+`btn-primary` / `btn-secondary` / `btn-ghost` ·
+`auth-input` / `auth-label` / `auth-link` ·
+`.aurora` + `glow-a/b/c` · `.pm-spinner` · `.pm-range`
+
+### Implementation notes
+
+- **Maps:** Leaflet + OpenStreetMap tiles (no API key), loaded client-only via
+  `dynamic(..., { ssr: false })`; gold/teal marker pins.
+- **Date picker:** react-datepicker with the Danish locale
+  (`dd/MM/yyyy HH:mm`), themed dark/gold.
+- **Mobile:** `viewport-fit=cover`, a dark `themeColor`, and safe-area insets so
+  there are no white borders on phones.
+
+> The app UI is in **Danish**; this design reference is kept in English for
+> convenience.
+
