@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="relative z-[1000] flex items-center justify-center rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 py-2.5 shadow-lg shadow-black/30">
+      <header className="relative z-[1000] flex h-14 items-center justify-center overflow-hidden rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 shadow-lg shadow-black/30">
         <Image
           src="/PM_final.svg"
           alt="PartyMakr"
