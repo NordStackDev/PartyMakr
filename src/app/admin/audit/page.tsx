@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/guard";
+import { permissionLabel } from "@/lib/admin/permissions";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -10,15 +11,12 @@ function formatDate(value: string | null): string {
   });
 }
 
-const ACTION_LABEL: Record<string, string> = {
-  delete_party: "Slettede fest",
-  revoke_invite: "Tilbagekaldte invitation",
-  ban_user: "Udelukkede bruger",
-  unban_user: "Ophævede udelukkelse",
-  delete_user: "Slettede bruger",
-  add_admin: "Tilføjede admin",
-  update_admin: "Opdaterede admin-tilladelser",
-  remove_admin: "Fjernede admin",
+type AuditMeta = {
+  email?: string;
+  title?: string;
+  party_title?: string;
+  invitee?: string;
+  permissions?: string[];
 };
 
 type AuditRow = {
@@ -31,26 +29,45 @@ type AuditRow = {
   created_at: string;
 };
 
-type AuditMeta = {
-  email?: string;
-  title?: string;
-  party_title?: string;
-  invitee?: string;
-  permissions?: string[];
-};
-
-/** Best readable label for who/what an action targeted. */
-function targetLabel(r: AuditRow, emailById: Map<string, string>): string | null {
+/**
+ * A full Danish sentence describing who did what to whom. Always names the
+ * affected user/entity (from the label captured at write time, falling back to
+ * a live email lookup) and the acting admin.
+ */
+function describe(r: AuditRow, emailById: Map<string, string>): string {
+  const actor = (r.actor_id && emailById.get(r.actor_id)) || "En admin";
   const m = r.metadata ?? {};
-  if (m.party_title || m.invitee) {
-    return [m.party_title, m.invitee].filter(Boolean).join(" · ");
+  const who =
+    m.email ||
+    (r.target_type === "user" && r.target_id
+      ? emailById.get(r.target_id)
+      : null) ||
+    "en bruger";
+  const perms =
+    (m.permissions ?? []).map(permissionLabel).join(", ") || "ingen";
+
+  switch (r.action) {
+    case "delete_user":
+      return `${actor} slettede brugeren ${who}`;
+    case "ban_user":
+      return `${actor} udelukkede ${who}`;
+    case "unban_user":
+      return `${actor} ophævede udelukkelsen af ${who}`;
+    case "delete_party":
+      return `${actor} slettede festen «${m.title ?? "ukendt"}»`;
+    case "revoke_invite":
+      return `${actor} tilbagekaldte invitationen${
+        m.invitee ? ` til ${m.invitee}` : ""
+      }${m.party_title ? ` for «${m.party_title}»` : ""}`;
+    case "add_admin":
+      return `${actor} tilføjede ${who} som admin (${perms})`;
+    case "update_admin":
+      return `${actor} ændrede ${who}'s tilladelser til: ${perms}`;
+    case "remove_admin":
+      return `${actor} fjernede admin-adgang for ${who}`;
+    default:
+      return `${actor}: ${r.action}`;
   }
-  if (m.email) return m.email;
-  if (m.title) return m.title;
-  if (r.target_type === "user" && r.target_id) {
-    return emailById.get(r.target_id) || null;
-  }
-  return null;
 }
 
 export default async function AdminAuditPage() {
@@ -82,27 +99,17 @@ export default async function AdminAuditPage() {
       </p>
 
       <ul className="space-y-2">
-        {rows.map((r) => {
-          const target = targetLabel(r, emailById);
-          const actor =
-            (r.actor_id && emailById.get(r.actor_id)) || "Ukendt admin";
-          return (
-            <li key={r.id} className="glass-card rounded-2xl p-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-medium text-white">
-                  {ACTION_LABEL[r.action] ?? r.action}
-                  {target ? (
-                    <span className="font-normal text-zinc-300"> · {target}</span>
-                  ) : null}
-                </p>
-                <span className="shrink-0 text-xs text-zinc-500">
-                  {formatDate(r.created_at)}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-zinc-500">Af {actor}</p>
-            </li>
-          );
-        })}
+        {rows.map((r) => (
+          <li
+            key={r.id}
+            className="glass-card flex items-baseline justify-between gap-3 rounded-2xl p-4"
+          >
+            <p className="text-sm text-zinc-100">{describe(r, emailById)}</p>
+            <span className="shrink-0 text-xs text-zinc-500">
+              {formatDate(r.created_at)}
+            </span>
+          </li>
+        ))}
         {rows.length === 0 ? (
           <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
             Ingen handlinger endnu.
