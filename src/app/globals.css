@@ -118,6 +118,10 @@ label,
 .pm-fullmap .leaflet-bottom {
   bottom: calc(4.25rem + env(safe-area-inset-bottom));
 }
+/* Lift the layer switcher (bottom-right) a bit higher than the attribution */
+.pm-fullmap .leaflet-bottom.leaflet-right {
+  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+}
 
 /* Layer switcher — dark glass to match the app */
 .pm-fullmap .leaflet-control-layers {

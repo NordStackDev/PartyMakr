@@ -49,12 +49,6 @@ const TILES = {
     attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics",
     subdomains: "",
   },
-  street: {
-    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    subdomains: "abc",
-  },
 };
 
 // Party fullness → colour. Green = room to spare, orange = almost full,
@@ -75,9 +69,9 @@ function fillFor(going: number, capacity: number | null): Fill {
 function partyIcon(color: string) {
   return L.divIcon({
     className: "",
-    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    html: `<div style="width:14px;height:14px;border-radius:9999px;background:${color};box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
   });
 }
 
@@ -104,8 +98,8 @@ function distance(m: number): string {
 // centre is also nudged off the true point by a small, deterministic offset
 // (seeded by the party id) so the circle's centre isn't the real spot either —
 // stable across renders, but never exact.
-const AREA_RADIUS_M = 250; // size of the "somewhere around here" circle
-const MAX_OFFSET_M = 120; // how far the centre is nudged (always < radius)
+const AREA_RADIUS_M = 150; // size of the "somewhere around here" circle
+const MAX_OFFSET_M = 70; // how far the centre is nudged (always < radius)
 
 function areaStyle(color: string) {
   return {
@@ -235,14 +229,6 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
           <TileLayer
             url={TILES.satellite.url}
             attribution={TILES.satellite.attribution}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Gade">
-          <TileLayer
-            url={TILES.street.url}
-            attribution={TILES.street.attribution}
-            subdomains={TILES.street.subdomains}
             maxZoom={MAX_ZOOM}
           />
         </LayersControl.BaseLayer>
