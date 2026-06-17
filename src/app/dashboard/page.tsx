@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
 import { MapHome } from "@/components/map/map-home";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
           <span className="text-sm font-bold text-white">PartyMakr</span>
         </div>
         <div className="flex items-center gap-2">
+          {user ? <NotificationBell userId={user.id} /> : null}
           {admin ? (
             <Link
               href="/admin"
