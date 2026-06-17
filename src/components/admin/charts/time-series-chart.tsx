@@ -110,9 +110,7 @@ export function TimeSeriesChart({
 
           {data.map((d, i) => (
             <circle key={i} cx={x(i)} cy={y(d.count)} r="6" fill="transparent">
-              <title>
-                {xLabel(d)}: {d.count}
-              </title>
+              <title>{`${xLabel(d)}: ${d.count}`}</title>
             </circle>
           ))}
         </svg>
