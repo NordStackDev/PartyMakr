@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { createParty } from "@/lib/parties/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { DateTimeField } from "@/components/parties/datetime-field";
 
 const LocationPicker = dynamic(
   () => import("@/components/map/location-picker"),
@@ -79,16 +80,11 @@ export function CreatePartyForm({ error }: { error?: string }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="auth-label">Starter</span>
-          <input
-            type="datetime-local"
-            name="starts_at"
-            required
-            className="auth-input"
-          />
+          <DateTimeField name="starts_at" />
         </label>
         <label className="block">
           <span className="auth-label">Slutter (valgfri)</span>
-          <input type="datetime-local" name="ends_at" className="auth-input" />
+          <DateTimeField name="ends_at" />
         </label>
       </div>
 

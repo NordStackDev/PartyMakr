@@ -79,7 +79,7 @@ PartyMakr er en social app til at finde fester i nærheden af dig. I modsætning
 | Frontend         | Next.js (React) — App Router + TypeScript  |
 | Hosting          | Vercel                                     |
 | Database & Auth  | Supabase (Postgres + Auth + Storage)       |
-| Kort             | Mapbox eller Google Maps (besluttes)       |
+| Kort             | Mapbox eller Google Maps (101: Tag stilling)       |
 | Styling          | Tailwind CSS (anbefalet)                   |
 
 ### Roadmap
