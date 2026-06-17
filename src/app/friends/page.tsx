@@ -11,7 +11,7 @@ export default async function FriendsPage() {
   if (!user) redirect("/login");
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <h1 className="text-xl font-semibold tracking-tight text-white">Venner</h1>
 
       <div className="glass-card mt-6 flex flex-col items-center gap-3 rounded-2xl p-8 text-center">

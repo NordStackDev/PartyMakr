@@ -23,6 +23,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#120d22",
   viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  // Pinch-zoom intentionally left enabled for WCAG 2.2 (no maximumScale lock).
 };
 
 export default function RootLayout({
@@ -36,7 +39,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <div className="club-bg relative flex min-h-dvh flex-col items-center justify-center sm:px-4">
+        <a
+          href="#main"
+          className="sr-only z-[2000] rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-zinc-950 focus:not-sr-only focus:absolute focus:left-1/2 focus:top-2 focus:-translate-x-1/2"
+        >
+          Spring til indhold
+        </a>
+        <div className="club-bg relative flex min-h-dvh flex-col items-center justify-center pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] sm:px-4">
           {/* Neon club glow */}
           <div
             aria-hidden
@@ -50,8 +59,14 @@ export default function RootLayout({
             <div className="glow-c absolute -bottom-10 left-1/4 h-96 w-96 rounded-full bg-amber-400/45 blur-3xl" />
           </div>
 
-          <div className="glass-card relative flex h-dvh w-full max-w-[420px] flex-col overflow-hidden pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:h-[860px] sm:max-h-[90vh] sm:pt-0 sm:shadow-2xl sm:rounded-[2rem]">
-            <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
+          <div className="glass-card relative flex h-dvh w-full max-w-[420px] flex-col overflow-hidden pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:h-[min(860px,90dvh)] sm:pt-0 sm:shadow-2xl sm:rounded-[2rem]">
+            <div
+              id="main"
+              tabIndex={-1}
+              className="@container/frame scroll-touch flex min-h-0 flex-1 flex-col overflow-y-auto outline-none"
+            >
+              {children}
+            </div>
             <BottomNav />
           </div>
         </div>

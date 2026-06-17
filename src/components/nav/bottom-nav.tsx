@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
   ChevronUp,
@@ -52,6 +52,8 @@ export function BottomNav() {
   const [unread, setUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const restoreRef = useRef<HTMLElement | null>(null);
 
   // On navigation: clear the messages badge and close the pull-up menu.
   if (pathname !== prevPath) {
@@ -59,6 +61,44 @@ export function BottomNav() {
     if (pathname.startsWith("/notifications") && unread !== 0) setUnread(0);
     if (menuOpen) setMenuOpen(false);
   }
+
+  // Accessible bottom sheet: trap Tab, close on Escape, focus the first item on
+  // open and restore focus to the trigger on close.
+  useEffect(() => {
+    if (!menuOpen) return;
+    restoreRef.current = document.activeElement as HTMLElement;
+    const panel = sheetRef.current;
+    const items = panel
+      ? Array.from(
+          panel.querySelectorAll<HTMLElement>(
+            'a[href], button:not([disabled])',
+          ),
+        )
+      : [];
+    items[0]?.focus();
+
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        return;
+      }
+      if (e.key !== "Tab" || items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      restoreRef.current?.focus?.();
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -112,7 +152,7 @@ export function BottomNav() {
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition hover:text-white"
+          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
         >
           <ChevronUp size={16} strokeWidth={2.4} />
         </button>
@@ -153,6 +193,8 @@ export function BottomNav() {
       {/* Pull-up sheet. Rendered outside <nav> so its `fixed` anchors to the
           phone-frame card (not the bar, which has its own backdrop-filter). */}
       <div
+        ref={sheetRef}
+        aria-hidden={!menuOpen}
         className={`fixed inset-0 z-[1100] ${menuOpen ? "" : "pointer-events-none"}`}
       >
         <button
@@ -165,7 +207,10 @@ export function BottomNav() {
           }`}
         />
         <div
-          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[#15102a] p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-300 ease-out ${
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[var(--surface)] p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-300 ease-out ${
             menuOpen ? "translate-y-0" : "translate-y-full"
           }`}
         >

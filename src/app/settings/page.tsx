@@ -30,7 +30,7 @@ export default async function SettingsPage({
   const radius = profile?.search_radius_km ?? 25;
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <h1 className="text-xl font-semibold tracking-tight text-white">
         Profil &amp; indstillinger
       </h1>

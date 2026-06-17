@@ -33,7 +33,7 @@ export default async function MyPartiesPage() {
   const parties = (data ?? []) as Party[];
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold tracking-tight text-white">
           Mine fester

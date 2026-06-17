@@ -20,7 +20,7 @@ export default async function NewPartyPage({
   const { error } = await searchParams;
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <Link
         href="/dashboard"
         className="text-sm text-zinc-300 hover:text-zinc-100"

@@ -40,7 +40,7 @@ export default async function NotificationsPage() {
   const items = (data ?? []) as Notification[];
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <Link
         href="/dashboard"
         className="text-sm text-zinc-300 hover:text-zinc-100"
@@ -66,9 +66,13 @@ export default async function NotificationsPage() {
                 <Icon size={18} />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-white">{n.title}</p>
+                <p className="break-words text-sm font-medium text-white">
+                  {n.title}
+                </p>
                 {n.body ? (
-                  <p className="mt-0.5 text-sm text-zinc-300">{n.body}</p>
+                  <p className="mt-0.5 line-clamp-2 break-words text-sm text-zinc-300">
+                    {n.body}
+                  </p>
                 ) : null}
                 <p className="mt-1 text-xs text-zinc-400">
                   {timeAgo(n.created_at)}

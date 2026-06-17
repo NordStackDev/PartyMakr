@@ -29,8 +29,8 @@ export function RsvpButtons({
           onClick={() => start(() => rsvp(partyId, o.key))}
           className={
             current === o.key
-              ? "rounded-full bg-[#FCBE4F] px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-60"
-              : "rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5 disabled:opacity-60"
+              ? "inline-flex min-h-11 items-center rounded-full bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+              : "inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5 disabled:opacity-60"
           }
         >
           {o.label}
@@ -41,7 +41,7 @@ export function RsvpButtons({
           type="button"
           disabled={pending}
           onClick={() => start(() => withdrawRsvp(partyId))}
-          className="rounded-full border border-red-400/40 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60"
+          className="inline-flex min-h-11 items-center rounded-full border border-red-400/40 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/10 disabled:opacity-60"
         >
           Fjern svar
         </button>

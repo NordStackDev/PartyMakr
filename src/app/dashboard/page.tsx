@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         <Link
           href="/admin"
           aria-label="Admin"
-          className="absolute right-4 top-4 z-[1000] rounded-full border border-white/15 bg-[#15102a]/80 p-2 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
+          className="absolute right-4 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#15102a]/80 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
         >
           <Shield size={16} />
         </Link>

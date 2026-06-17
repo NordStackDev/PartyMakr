@@ -3,13 +3,52 @@
 :root {
   --background: #0a0510;
   --foreground: #ededed;
+
+  /* Brand + surface design tokens (single source of truth) */
+  --base: #120d22;
+  --surface: #15102a;
+  --surface-2: #1b1530;
+  --brand: #fcbe4f;
+  --brand-hover: #fdca6b;
+  --accent: #63bfcb;
+  --muted: #a9a6b6; /* lifted from zinc-400 for AA contrast on dark */
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* Explicit fluid type tokens (also see the html font-size clamp below, which
+     makes every rem-based Tailwind size scale fluidly across devices). */
+  --text-xs: clamp(0.7rem, 0.66rem + 0.2vw, 0.78rem);
+  --text-sm: clamp(0.8rem, 0.74rem + 0.3vw, 0.9rem);
+  --text-base: clamp(0.9rem, 0.84rem + 0.35vw, 1rem);
+  --text-lg: clamp(1.05rem, 0.97rem + 0.45vw, 1.2rem);
+  --text-xl: clamp(1.2rem, 1.06rem + 0.7vw, 1.45rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 1.9rem);
+
+  /* Bottom-bar clearance — one token drives every page + the map controls */
+  --nav-height: calc(4rem + env(safe-area-inset-bottom));
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Fluid root type: scales the whole rem-based type + spacing system between a
+   small phone and a large screen without touching individual utilities. */
+html {
+  font-size: clamp(15px, 14px + 0.3vw, 17px);
 }
 
 html,
@@ -51,6 +90,41 @@ label,
   -webkit-touch-callout: none;
 }
 
+/* Visible keyboard focus ring — only for keyboard users, not mouse/touch. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Inputs already show their own focus ring; don't double up. */
+.auth-input:focus-visible {
+  outline: none;
+}
+
+/* Momentum scrolling + keep focused inputs clear of the bottom bar. */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: var(--nav-height);
+  overscroll-behavior: contain;
+}
+
+/* Clear the floating bottom bar — replaces the ad-hoc pb-28 magic number. */
+.pb-nav {
+  padding-bottom: calc(var(--nav-height) + 1rem);
+}
+
+/* Respect reduced-motion across every animation AND transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ---------------------------------------------------------------------------
  * PartyMakr brand kit — midnight base, gold (#FCBE4F) as the main color.
  * Reusable classes keep the screens consistent and legible on dark.
@@ -64,7 +138,7 @@ label,
 
   /* Deep midnight backdrop behind the frame */
   .club-bg {
-    @apply bg-[#120d22];
+    @apply bg-[var(--base)];
   }
 
   /* Frosted glass panel that lets the glow bleed through */
@@ -74,10 +148,10 @@ label,
 
   /* Primary call-to-action: solid gold pill with dark text */
   .btn-primary {
-    @apply inline-flex w-full items-center justify-center rounded-full
-      bg-[#FCBE4F] px-4 py-2.5 text-sm font-semibold text-zinc-950
-      shadow-lg shadow-amber-500/30 transition hover:bg-[#fdca6b]
-      active:brightness-95 disabled:opacity-60 disabled:hover:bg-[#FCBE4F];
+    @apply inline-flex min-h-11 w-full items-center justify-center rounded-full
+      bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-zinc-950
+      shadow-lg shadow-amber-500/30 transition hover:bg-[var(--brand-hover)]
+      active:brightness-95 disabled:opacity-60 disabled:hover:bg-[var(--brand)];
   }
 
   /* Secondary action (e.g. resend) */
@@ -89,16 +163,18 @@ label,
 
   /* Outline / ghost button on dark */
   .btn-ghost {
-    @apply inline-flex w-full items-center justify-center rounded-full border
-      border-white/15 px-4 py-2.5 text-sm font-semibold text-zinc-200
+    @apply inline-flex min-h-11 w-full items-center justify-center rounded-full
+      border border-white/15 px-4 py-2.5 text-sm font-semibold text-zinc-200
       transition hover:bg-white/5;
   }
 
   /* Text inputs */
   .auth-input {
-    @apply mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5
-      text-sm text-zinc-100 placeholder:text-zinc-400 outline-none transition
-      focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/30;
+    @apply mt-1 min-h-11 w-full rounded-xl border border-white/10 bg-white/5
+      px-3.5 py-3 text-zinc-100 placeholder:text-zinc-400 outline-none
+      transition focus:border-amber-400/60 focus:ring-2 focus:ring-amber-500/30;
+    /* >=16px so iOS Safari never zooms the page when an input is focused. */
+    font-size: max(16px, 1rem);
   }
 
   .auth-label {
@@ -116,11 +192,11 @@ label,
   top: 2rem;
 }
 .pm-fullmap .leaflet-bottom {
-  bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-height) + 0.25rem);
 }
 /* Lift the layer switcher (bottom-right) a bit higher than the attribution */
 .pm-fullmap .leaflet-bottom.leaflet-right {
-  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--nav-height) + 2.5rem);
 }
 
 /* Attribution — a small dark pill instead of the default white bar */

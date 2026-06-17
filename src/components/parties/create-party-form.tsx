@@ -50,7 +50,7 @@ export function CreatePartyForm({ error }: { error?: string }) {
 
       <div>
         <span className="auth-label">Placering</span>
-        <div className="mt-1 h-56 overflow-hidden rounded-xl border border-white/10">
+        <div className="mt-1 h-[clamp(11rem,38vh,16rem)] overflow-hidden rounded-xl border border-white/10">
           <LocationPicker
             value={loc}
             onPick={(lat, lng) => setLoc({ lat, lng })}
@@ -77,7 +77,7 @@ export function CreatePartyForm({ error }: { error?: string }) {
         <input name="address" className="auth-input" />
       </label>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
           <span className="auth-label">Starter</span>
           <DateTimeField name="starts_at" />
@@ -88,7 +88,7 @@ export function CreatePartyForm({ error }: { error?: string }) {
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
           <span className="auth-label">Synlighed</span>
           <select name="visibility" defaultValue="public" className="auth-input">
@@ -102,6 +102,7 @@ export function CreatePartyForm({ error }: { error?: string }) {
             type="number"
             name="capacity"
             min={1}
+            inputMode="numeric"
             placeholder="Ubegrænset"
             className="auth-input"
           />

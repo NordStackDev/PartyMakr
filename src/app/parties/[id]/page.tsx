@@ -66,7 +66,7 @@ export default async function PartyDetailPage({
   const hostName = host?.display_name || host?.username || "en vært";
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
+    <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <Link
         href="/dashboard"
         className="text-sm text-zinc-300 hover:text-zinc-100"
@@ -103,9 +103,9 @@ export default async function PartyDetailPage({
           </p>
         ) : null}
         {party.address ? (
-          <p className="flex items-center gap-2 text-zinc-300">
-            <MapPin size={16} className="shrink-0 text-amber-300" />
-            {party.address}
+          <p className="flex items-start gap-2 text-zinc-300">
+            <MapPin size={16} className="mt-0.5 shrink-0 text-amber-300" />
+            <span className="min-w-0 break-words">{party.address}</span>
           </p>
         ) : null}
         <p className="flex items-center gap-2 text-zinc-400">
@@ -121,7 +121,7 @@ export default async function PartyDetailPage({
         </p>
       ) : null}
 
-      <div className="mt-4 h-48 overflow-hidden rounded-xl border border-white/10">
+      <div className="mt-4 h-[clamp(9rem,32vh,14rem)] overflow-hidden rounded-xl border border-white/10">
         <MiniMap lat={party.lat} lng={party.lon} />
       </div>
 
