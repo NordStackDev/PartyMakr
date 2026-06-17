@@ -145,14 +145,14 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl border-t border-white/10 bg-[#120d22]/80 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <nav className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl border-t border-white/10 bg-[#120d22]/50 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         {/* Pull-up handle — opens the menu */}
         <button
           type="button"
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/80 pb-0.5 text-zinc-300 backdrop-blur-xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
+          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/50 pb-0.5 text-zinc-300 backdrop-blur-xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
         >
           <ChevronUp size={16} strokeWidth={2.4} />
         </button>

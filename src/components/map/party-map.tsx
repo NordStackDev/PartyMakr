@@ -217,18 +217,18 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
     >
       <AttributionControl position="bottomleft" prefix={false} />
       <LayersControl position="bottomright">
-        <LayersControl.BaseLayer checked name="Mørkt">
+        <LayersControl.BaseLayer checked name="Satellit">
+          <TileLayer
+            url={TILES.satellite.url}
+            attribution={TILES.satellite.attribution}
+            maxZoom={MAX_ZOOM}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Mørkt">
           <TileLayer
             url={TILES.dark.url}
             attribution={TILES.dark.attribution}
             subdomains={TILES.dark.subdomains}
-            maxZoom={MAX_ZOOM}
-          />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Satellit">
-          <TileLayer
-            url={TILES.satellite.url}
-            attribution={TILES.satellite.attribution}
             maxZoom={MAX_ZOOM}
           />
         </LayersControl.BaseLayer>
