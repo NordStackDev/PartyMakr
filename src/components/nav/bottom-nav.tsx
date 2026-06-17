@@ -145,16 +145,16 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="absolute inset-x-0 bottom-0 z-[1000] rounded-t-2xl border-t border-white/10 bg-[#120d22]/50 pb-[env(safe-area-inset-bottom)] shadow-[0_-6px_16px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-        {/* Pull-up handle — opens the menu */}
+      <nav className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[1000] rounded-[1.75rem] border border-white/12 bg-[#120d22]/55 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/5 backdrop-blur-2xl">
+        {/* Pull-up handle — a small glass nub on the pill's top edge */}
         <button
           type="button"
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-4 right-4 flex h-5 w-12 items-end justify-center rounded-t-xl border border-b-0 border-white/10 bg-[#120d22]/50 pb-0.5 text-zinc-300 backdrop-blur-xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
+          className="absolute -top-3.5 right-6 flex h-5 w-11 items-end justify-center rounded-t-2xl border border-b-0 border-white/12 bg-[#120d22]/70 pb-0.5 text-zinc-300 backdrop-blur-2xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
         >
-          <ChevronUp size={16} strokeWidth={2.4} />
+          <ChevronUp size={15} strokeWidth={2.4} />
         </button>
 
         <div className="relative flex items-stretch justify-around px-2">
@@ -210,7 +210,7 @@ export function BottomNav() {
           role="dialog"
           aria-modal="true"
           aria-label="Menu"
-          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/10 bg-[var(--surface)] p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/12 bg-[#15102a]/85 p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out ${
             menuOpen ? "translate-y-0" : "translate-y-full"
           }`}
         >
@@ -268,19 +268,30 @@ function TabLink({
       href={tab.href}
       aria-label={tab.label}
       aria-current={active ? "page" : undefined}
-      className={`relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2 transition ${
-        active ? "text-[#FCBE4F]" : "text-zinc-400 hover:text-zinc-200"
-      }`}
+      className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
     >
-      <span className="relative">
-        <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+      {/* Active tab = frosted glass pill behind the icon */}
+      <span
+        className={`relative flex h-8 w-12 items-center justify-center rounded-full transition ${
+          active
+            ? "bg-white/12 text-[#FCBE4F] ring-1 ring-inset ring-white/10"
+            : "text-zinc-400"
+        }`}
+      >
+        <Icon size={20} strokeWidth={active ? 2.4 : 2} />
         {badge > 0 ? (
-          <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute right-1 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {badge > 9 ? "9+" : badge}
           </span>
         ) : null}
       </span>
-      <span className="text-[10px] font-semibold">{tab.label}</span>
+      <span
+        className={`text-[10px] font-semibold transition ${
+          active ? "text-[#FCBE4F]" : "text-zinc-400"
+        }`}
+      >
+        {tab.label}
+      </span>
     </Link>
   );
 }

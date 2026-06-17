@@ -28,8 +28,9 @@
   --text-xl: clamp(1.2rem, 1.06rem + 0.7vw, 1.45rem);
   --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 1.9rem);
 
-  /* Bottom-bar clearance — one token drives every page + the map controls */
-  --nav-height: calc(4rem + env(safe-area-inset-bottom));
+  /* Floating bottom-bar clearance (pill height + bottom gap) — one token drives
+     every page's .pb-nav and the map controls. */
+  --nav-height: calc(4.75rem + env(safe-area-inset-bottom));
 }
 
 @theme inline {
