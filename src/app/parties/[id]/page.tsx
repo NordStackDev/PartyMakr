@@ -66,7 +66,7 @@ export default async function PartyDetailPage({
   const hostName = host?.display_name || host?.username || "en vært";
 
   return (
-    <main className="flex flex-1 flex-col px-5 py-5">
+    <main className="flex flex-1 flex-col px-5 py-5 pb-28">
       <Link
         href="/dashboard"
         className="text-sm text-zinc-300 hover:text-zinc-100"
