@@ -24,14 +24,16 @@ export async function createParty(formData: FormData) {
   if (!user) redirect("/login");
 
   const title = str(formData, "title").trim();
-  const lat = Number(str(formData, "lat"));
-  const lng = Number(str(formData, "lng"));
+  const latRaw = str(formData, "lat");
+  const lngRaw = str(formData, "lng");
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
 
   if (!title) {
     redirect("/parties/new?error=" + encodeURIComponent("Giv festen en titel."));
   }
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
     redirect(
       "/parties/new?error=" + encodeURIComponent("Vælg en placering på kortet."),
     );
