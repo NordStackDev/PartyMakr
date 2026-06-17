@@ -17,6 +17,7 @@ type NearbyParty = {
   ends_at: string | null;
   visibility: "public" | "private";
   capacity: number | null;
+  going_count: number;
   lon: number;
   lat: number;
   distance_m: number;
@@ -25,12 +26,29 @@ type NearbyParty = {
 // Copenhagen fallback if geolocation is denied/unavailable.
 const FALLBACK: [number, number] = [55.6761, 12.5683];
 
-const partyIcon = L.divIcon({
-  className: "",
-  html: `<div style="width:22px;height:22px;border-radius:9999px;background:#FCBE4F;border:2px solid #120d22;box-shadow:0 0 0 2px rgba(252,190,79,.35),0 2px 6px rgba(0,0,0,.5)"></div>`,
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
-});
+// Party fullness → colour. Green = room to spare, orange = almost full,
+// red = full. Parties without a capacity count as open (green).
+type Fill = { color: string; label: string };
+const FILL_OPEN: Fill = { color: "#34d399", label: "Ledige pladser" };
+const FILL_ALMOST: Fill = { color: "#f97316", label: "Næsten fuld" };
+const FILL_FULL: Fill = { color: "#ef4444", label: "Fuld" };
+
+function fillFor(going: number, capacity: number | null): Fill {
+  if (!capacity || capacity <= 0) return FILL_OPEN;
+  const ratio = going / capacity;
+  if (ratio >= 1) return FILL_FULL;
+  if (ratio >= 0.7) return FILL_ALMOST;
+  return FILL_OPEN;
+}
+
+function partyIcon(color: string) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};border:2px solid #120d22;box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
 
 const meIcon = L.divIcon({
   className: "",
@@ -57,13 +75,16 @@ function distance(m: number): string {
 // stable across renders, but never exact.
 const AREA_RADIUS_M = 250; // size of the "somewhere around here" circle
 const MAX_OFFSET_M = 120; // how far the centre is nudged (always < radius)
-const areaStyle = {
-  color: "#FCBE4F",
-  weight: 1.5,
-  opacity: 0.7,
-  fillColor: "#FCBE4F",
-  fillOpacity: 0.15,
-};
+
+function areaStyle(color: string) {
+  return {
+    color,
+    weight: 1.5,
+    opacity: 0.7,
+    fillColor: color,
+    fillOpacity: 0.15,
+  };
+}
 
 function hashStr(s: string): number {
   let h = 2166136261;
@@ -176,15 +197,30 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
 
       {parties.map((p) => {
         const center = fuzzedCenter(p.lat, p.lon, p.id);
+        const fill = fillFor(p.going_count, p.capacity);
         return (
           <Fragment key={p.id}>
-            <Circle center={center} radius={AREA_RADIUS_M} pathOptions={areaStyle} />
-            <Marker position={center} icon={partyIcon}>
+            <Circle
+              center={center}
+              radius={AREA_RADIUS_M}
+              pathOptions={areaStyle(fill.color)}
+            />
+            <Marker position={center} icon={partyIcon(fill.color)}>
               <Popup>
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-zinc-900">{p.title}</p>
                   <p className="text-xs text-zinc-600">{fmt(p.starts_at)}</p>
                   <p className="text-xs text-zinc-500">{distance(p.distance_m)}</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <span
+                      style={{ background: fill.color }}
+                      className="inline-block h-2 w-2 rounded-full"
+                    />
+                    <span className="text-zinc-700">
+                      {fill.label}
+                      {p.capacity ? ` · ${p.going_count}/${p.capacity}` : ""}
+                    </span>
+                  </p>
                   <p className="text-[11px] text-zinc-400">Omtrentligt område</p>
                   <Link
                     href={`/parties/${p.id}`}

@@ -87,7 +87,7 @@ export function BottomNav() {
   if (!visible) return null;
 
   return (
-    <nav className="shrink-0 border-t border-white/10 bg-[#120d22]/80 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+    <nav className="shrink-0 border-t border-white/10 bg-[#15102a] pb-[env(safe-area-inset-bottom)]">
       <div className="relative flex items-stretch justify-around px-2">
         {TABS.slice(0, 2).map((tab) => (
           <TabLink

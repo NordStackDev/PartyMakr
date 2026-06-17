@@ -187,6 +187,8 @@ Sted
 Måske et billede på festen
 
 
-
 Rate hinadnen på fest vært / fest afholder 
 Rate hinaden som gæst også 
+
+
+Radius på pin til festen, den skal ikke være så nøjagtig. 
