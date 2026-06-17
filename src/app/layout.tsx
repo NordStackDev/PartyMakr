@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
@@ -16,6 +16,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PartyMakr",
   description: "Find fester i nærheden af dig — på et kort, ikke et feed.",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#120d22",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -43,7 +49,7 @@ export default function RootLayout({
             <div className="glow-c absolute -bottom-10 left-1/4 h-96 w-96 rounded-full bg-amber-400/45 blur-3xl" />
           </div>
 
-          <div className="glass-card relative flex min-h-screen w-full max-w-[420px] flex-1 flex-col text-zinc-100 sm:my-6 sm:min-h-0 sm:rounded-[2rem] sm:shadow-2xl sm:overflow-hidden">
+          <div className="glass-card relative flex min-h-screen w-full max-w-[420px] flex-1 flex-col pt-[env(safe-area-inset-top)] text-zinc-100 sm:my-6 sm:min-h-0 sm:pt-0 sm:shadow-2xl sm:rounded-[2rem] sm:overflow-hidden">
             {children}
           </div>
         </div>

@@ -12,8 +12,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
+body {
+  /* Match the club base so the notch / safe-area / overscroll never flashes
+     white on mobile. */
+  background-color: #120d22;
+}
+
 body {
   font-family: var(--font-geist-sans), system-ui, Arial, sans-serif;
+  overscroll-behavior: none;
 }
 
 /* ---------------------------------------------------------------------------
