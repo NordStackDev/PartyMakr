@@ -1,7 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/guard";
 import { revokeInvite } from "@/lib/admin/actions";
 import { ModerationButton } from "@/components/admin/moderation-button";
+import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -16,6 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
   accepted: "Accepteret",
   declined: "Afvist",
 };
+const STATUSES = ["", "pending", "accepted", "declined"] as const;
 
 type Invite = {
   party_id: string;
@@ -24,54 +26,68 @@ type Invite = {
   invited_at: string;
 };
 
-export default async function AdminInvitesPage() {
+export default async function AdminInvitesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; page?: string }>;
+}) {
   const { permissions } = await requirePermission("invites");
   const canModerate = permissions.includes("moderate");
-  const supabase = await createClient();
+  const { status = "", page: pageParam } = await searchParams;
+  const activeStatus = (STATUSES as readonly string[]).includes(status)
+    ? status
+    : "";
+  const page = Math.max(1, Number(pageParam) || 1);
 
-  const { data: invites } = await supabase
+  const admin = createAdminClient();
+  const from = (page - 1) * PAGE_SIZE;
+
+  let builder = admin
     .from("party_invites")
-    .select("party_id, invitee_id, status, invited_at")
-    .order("invited_at", { ascending: false })
-    .limit(200);
+    .select("party_id, invitee_id, status, invited_at", { count: "exact" })
+    .order("invited_at", { ascending: false });
+  if (activeStatus) builder = builder.eq("status", activeStatus);
 
-  const rows = (invites ?? []) as Invite[];
+  const { data, count } = await builder.range(from, from + PAGE_SIZE - 1);
+  const rows = (data ?? []) as Invite[];
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const partyIds = [...new Set(rows.map((i) => i.party_id))];
-  const inviteeIds = [...new Set(rows.map((i) => i.invitee_id))];
 
-  const [partiesRes, inviteesRes] = await Promise.all([
+  const [{ data: parties }, authRes] = await Promise.all([
     partyIds.length
-      ? supabase.from("parties").select("id, title").in("id", partyIds)
+      ? admin.from("parties").select("id, title").in("id", partyIds)
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
-    inviteeIds.length
-      ? supabase
-          .from("profiles")
-          .select("id, display_name, username")
-          .in("id", inviteeIds)
-      : Promise.resolve({
-          data: [] as {
-            id: string;
-            display_name: string | null;
-            username: string | null;
-          }[],
-        }),
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
-
-  const partyTitle = new Map(
-    (partiesRes.data ?? []).map((p) => [p.id, p.title]),
-  );
-  const inviteeName = new Map(
-    (inviteesRes.data ?? []).map((p) => [
-      p.id,
-      p.display_name || p.username || p.id,
-    ]),
+  const partyTitle = new Map((parties ?? []).map((p) => [p.id, p.title]));
+  const emailById = new Map(
+    (authRes.data?.users ?? []).map((u) => [u.id, u.email ?? ""]),
   );
 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-white">Invitationer</h1>
-      <p className="text-sm text-zinc-500">{rows.length} invitationer</p>
+
+      <form method="get" className="flex flex-wrap gap-1">
+        {STATUSES.map((s) => (
+          <button
+            key={s || "all"}
+            name="status"
+            value={s}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+              activeStatus === s
+                ? "bg-white/15 text-white"
+                : "bg-white/5 text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {s ? STATUS_LABEL[s] : "Alle"}
+          </button>
+        ))}
+      </form>
+
+      <p className="text-sm text-zinc-500">{total} invitationer</p>
 
       <ul className="space-y-2">
         {rows.map((i) => (
@@ -87,7 +103,7 @@ export default async function AdminInvitesPage() {
                 </span>
               </p>
               <p className="mt-0.5 text-xs text-zinc-500">
-                Inviteret: {inviteeName.get(i.invitee_id)} ·{" "}
+                Inviteret: {emailById.get(i.invitee_id) || i.invitee_id} ·{" "}
                 {formatDate(i.invited_at)}
               </p>
             </div>
@@ -102,7 +118,19 @@ export default async function AdminInvitesPage() {
             ) : null}
           </li>
         ))}
+        {rows.length === 0 ? (
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+            Ingen invitationer fundet.
+          </li>
+        ) : null}
       </ul>
+
+      <Pagination
+        basePath="/admin/invites"
+        page={page}
+        pageCount={pageCount}
+        query={{ status: activeStatus }}
+      />
     </div>
   );
 }

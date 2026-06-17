@@ -71,6 +71,52 @@ export async function deleteParty(partyId: string) {
 }
 
 /**
+ * Edit a party's basic fields. Uses the service role (no admin UPDATE policy on
+ * parties), gated by 'moderate'. Audited.
+ */
+export async function updateParty(
+  partyId: string,
+  form: {
+    title: string;
+    description: string;
+    address: string;
+    visibility: "public" | "private";
+    capacity: string;
+  },
+) {
+  const actorId = await assertPermission("moderate");
+  const admin = createAdminClient();
+
+  const title = form.title.trim();
+  if (title.length < 1 || title.length > 120) {
+    throw new Error("Titlen skal være mellem 1 og 120 tegn.");
+  }
+  const capacity = form.capacity.trim() ? Number(form.capacity) : null;
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity <= 0)) {
+    throw new Error("Kapacitet skal være et positivt tal.");
+  }
+
+  const { error } = await admin
+    .from("parties")
+    .update({
+      title,
+      description: form.description.trim() || null,
+      address: form.address.trim() || null,
+      visibility: form.visibility,
+      capacity,
+    })
+    .eq("id", partyId);
+  if (error) {
+    throw new Error("Kunne ikke gemme festen.");
+  }
+
+  await audit(actorId, "update_party", "party", partyId, { title });
+
+  revalidatePath(`/admin/parties/${partyId}`);
+  revalidatePath("/admin/parties");
+}
+
+/**
  * Revoke an invite. Authorized by the admin DELETE RLS policy; audited.
  */
 export async function revokeInvite(partyId: string, inviteeId: string) {

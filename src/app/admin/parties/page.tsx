@@ -1,7 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/guard";
-import { deleteParty } from "@/lib/admin/actions";
-import { ModerationButton } from "@/components/admin/moderation-button";
+import { SearchBox } from "@/components/admin/search-box";
+import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -20,72 +22,88 @@ type Party = {
   host_id: string;
 };
 
-export default async function AdminPartiesPage() {
-  const { permissions } = await requirePermission("parties");
-  const canModerate = permissions.includes("moderate");
-  const supabase = await createClient();
+export default async function AdminPartiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
+  await requirePermission("parties");
+  const { q = "", page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const query = q.trim();
 
-  const { data: parties } = await supabase
+  const admin = createAdminClient();
+  const from = (page - 1) * PAGE_SIZE;
+
+  let builder = admin
     .from("parties")
-    .select("id, title, visibility, starts_at, created_at, host_id")
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .select("id, title, visibility, starts_at, created_at, host_id", {
+      count: "exact",
+    })
+    .order("created_at", { ascending: false });
+  if (query) builder = builder.ilike("title", `%${query}%`);
 
-  const rows = (parties ?? []) as Party[];
+  const { data, count } = await builder.range(from, from + PAGE_SIZE - 1);
+  const rows = (data ?? []) as Party[];
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Resolve host display names in one query.
-  const hostIds = [...new Set(rows.map((p) => p.host_id))];
-  const { data: hosts } = hostIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, display_name, username")
-        .in("id", hostIds)
-    : { data: [] };
-  const hostById = new Map(
-    (hosts ?? []).map((h) => [h.id, h.display_name || h.username || h.id]),
+  const { data: authData } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  const emailById = new Map(
+    (authData?.users ?? []).map((u) => [u.id, u.email ?? ""]),
   );
 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-white">Fester</h1>
-      <p className="text-sm text-zinc-500">{rows.length} fester</p>
+      <SearchBox placeholder="Søg på titel…" defaultValue={q} />
+      <p className="text-sm text-zinc-500">{total} fester</p>
 
       <ul className="space-y-2">
         {rows.map((p) => (
-          <li
-            key={p.id}
-            className="glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">
-                {p.title}
-                <span
-                  className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                    p.visibility === "public"
-                      ? "bg-fuchsia-500/15 text-fuchsia-300"
-                      : "bg-violet-500/15 text-violet-300"
-                  }`}
-                >
-                  {p.visibility === "public" ? "Offentlig" : "Privat"}
-                </span>
-              </p>
-              <p className="mt-0.5 text-xs text-zinc-500">
-                Vært: {hostById.get(p.host_id)} · Starter{" "}
-                {formatDate(p.starts_at)}
-              </p>
-            </div>
-            {canModerate ? (
-              <ModerationButton
-                action={deleteParty.bind(null, p.id)}
-                confirm="Slet denne fest permanent?"
-                pendingText="Sletter…"
-              >
-                Slet
-              </ModerationButton>
-            ) : null}
+          <li key={p.id}>
+            <Link
+              href={`/admin/parties/${p.id}`}
+              className="glass-card flex items-center justify-between gap-3 rounded-2xl p-4 transition hover:bg-white/[0.07]"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">
+                  {p.title}
+                  <span
+                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                      p.visibility === "public"
+                        ? "bg-fuchsia-500/15 text-fuchsia-300"
+                        : "bg-violet-500/15 text-violet-300"
+                    }`}
+                  >
+                    {p.visibility === "public" ? "Offentlig" : "Privat"}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  Vært: {emailById.get(p.host_id) || p.host_id} · Starter{" "}
+                  {formatDate(p.starts_at)}
+                </p>
+              </div>
+              <span className="shrink-0 text-zinc-500">→</span>
+            </Link>
           </li>
         ))}
+        {rows.length === 0 ? (
+          <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
+            Ingen fester fundet.
+          </li>
+        ) : null}
       </ul>
+
+      <Pagination
+        basePath="/admin/parties"
+        page={page}
+        pageCount={pageCount}
+        query={{ q }}
+      />
     </div>
   );
 }

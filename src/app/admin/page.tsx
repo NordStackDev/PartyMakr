@@ -31,9 +31,40 @@ export default async function AdminOverviewPage() {
     );
   }
 
+  const pct = (curr: number, prev: number): number | null => {
+    if (!prev) return curr > 0 ? 100 : null;
+    return Math.round(((curr - prev) / prev) * 100);
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-lg font-semibold text-white">Oversigt</h1>
+
+      {/* Growth & engagement */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          label="Nye i dag"
+          value={data.signupsToday}
+          trend={pct(data.signupsToday, data.signupsYesterday)}
+          hint={`i går: ${data.signupsYesterday}`}
+        />
+        <StatCard
+          label="Nye (7 dage)"
+          value={data.users7d}
+          trend={pct(data.users7d, data.signupsPrev7d)}
+          hint={`forrige uge: ${data.signupsPrev7d}`}
+        />
+        <StatCard
+          label="Aktive (7 dage)"
+          value={data.activeUsers7d}
+          hint="loggede ind"
+        />
+        <StatCard
+          label="Accept-rate"
+          value={`${data.acceptanceRate}%`}
+          hint="invitationer"
+        />
+      </div>
 
       {/* Key metrics — all real, read straight from the tables */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

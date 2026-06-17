@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin/guard";
 import { permissionLabel } from "@/lib/admin/permissions";
+import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -10,6 +13,21 @@ function formatDate(value: string | null): string {
     timeStyle: "short",
   });
 }
+
+const ACTION_LABEL: Record<string, string> = {
+  delete_party: "Slettede fest",
+  update_party: "Redigerede fest",
+  revoke_invite: "Tilbagekaldte invitation",
+  ban_user: "Udelukkede bruger",
+  unban_user: "Ophævede udelukkelse",
+  delete_user: "Slettede bruger",
+  update_profile: "Opdaterede profil",
+  send_password_reset: "Sendte nulstillingsmail",
+  resend_confirmation: "Gensendte bekræftelse",
+  add_admin: "Tilføjede admin",
+  update_admin: "Opdaterede admin-tilladelser",
+  remove_admin: "Fjernede admin",
+};
 
 type AuditMeta = {
   email?: string;
@@ -29,11 +47,6 @@ type AuditRow = {
   created_at: string;
 };
 
-/**
- * A full Danish sentence describing who did what to whom. Always names the
- * affected user/entity (from the label captured at write time, falling back to
- * a live email lookup) and the acting admin.
- */
 function describe(r: AuditRow, emailById: Map<string, string>): string {
   const actor = (r.actor_id && emailById.get(r.actor_id)) || "En admin";
   const m = r.metadata ?? {};
@@ -53,8 +66,16 @@ function describe(r: AuditRow, emailById: Map<string, string>): string {
       return `${actor} udelukkede ${who}`;
     case "unban_user":
       return `${actor} ophævede udelukkelsen af ${who}`;
+    case "update_profile":
+      return `${actor} opdaterede profilen for ${who}`;
+    case "send_password_reset":
+      return `${actor} sendte en nulstillingsmail til ${who}`;
+    case "resend_confirmation":
+      return `${actor} gensendte bekræftelsesmailen til ${who}`;
     case "delete_party":
       return `${actor} slettede festen «${m.title ?? "ukendt"}»`;
+    case "update_party":
+      return `${actor} redigerede festen «${m.title ?? "ukendt"}»`;
     case "revoke_invite":
       return `${actor} tilbagekaldte invitationen${
         m.invitee ? ` til ${m.invitee}` : ""
@@ -65,44 +86,120 @@ function describe(r: AuditRow, emailById: Map<string, string>): string {
       return `${actor} ændrede ${who}'s tilladelser til: ${perms}`;
     case "remove_admin":
       return `${actor} fjernede admin-adgang for ${who}`;
-    case "update_profile":
-      return `${actor} opdaterede profilen for ${who}`;
-    case "send_password_reset":
-      return `${actor} sendte en nulstillingsmail til ${who}`;
-    case "resend_confirmation":
-      return `${actor} gensendte bekræftelsesmailen til ${who}`;
     default:
       return `${actor}: ${r.action}`;
   }
 }
 
-export default async function AdminAuditPage() {
+export default async function AdminAuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    action?: string;
+    actor?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+  }>;
+}) {
   await requirePermission("audit");
+  const sp = await searchParams;
+  const page = Math.max(1, Number(sp.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+
   const supabase = await createClient();
-
-  const { data: log } = await supabase
-    .from("admin_audit_log")
-    .select("id, actor_id, action, target_type, target_id, metadata, created_at")
-    .order("created_at", { ascending: false })
-    .limit(200);
-
-  const rows = (log ?? []) as AuditRow[];
-
   const admin = createAdminClient();
-  const { data: authData } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+
+  let builder = supabase
+    .from("admin_audit_log")
+    .select(
+      "id, actor_id, action, target_type, target_id, metadata, created_at",
+      { count: "exact" },
+    )
+    .order("created_at", { ascending: false });
+
+  if (sp.action) builder = builder.eq("action", sp.action);
+  if (sp.actor) builder = builder.eq("actor_id", sp.actor);
+  if (sp.from) builder = builder.gte("created_at", `${sp.from}T00:00:00.000Z`);
+  if (sp.to) builder = builder.lte("created_at", `${sp.to}T23:59:59.999Z`);
+
+  const { data: log, count } = await builder.range(from, from + PAGE_SIZE - 1);
+  const rows = (log ?? []) as AuditRow[];
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Emails + the admin list (actor dropdown).
+  const [{ data: admins }, authRes] = await Promise.all([
+    admin.from("admin_users").select("user_id"),
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  ]);
   const emailById = new Map(
-    (authData?.users ?? []).map((u) => [u.id, u.email ?? ""]),
+    (authRes.data?.users ?? []).map((u) => [u.id, u.email ?? ""]),
   );
+  const adminIds = (admins ?? []).map((a) => a.user_id as string);
 
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-white">Aktivitetslog</h1>
-      <p className="text-sm text-zinc-500">
-        Seneste {rows.length} admin-handlinger
-      </p>
+
+      <form
+        method="get"
+        className="glass-card grid grid-cols-1 gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
+      >
+        <label className="block">
+          <span className="auth-label text-xs">Handling</span>
+          <select name="action" defaultValue={sp.action ?? ""} className="auth-input">
+            <option value="">Alle</option>
+            {Object.entries(ACTION_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="auth-label text-xs">Admin</span>
+          <select name="actor" defaultValue={sp.actor ?? ""} className="auth-input">
+            <option value="">Alle</option>
+            {adminIds.map((id) => (
+              <option key={id} value={id}>
+                {emailById.get(id) || id}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="auth-label text-xs">Fra</span>
+          <input
+            type="date"
+            name="from"
+            defaultValue={sp.from ?? ""}
+            className="auth-input"
+          />
+        </label>
+        <label className="block">
+          <span className="auth-label text-xs">Til</span>
+          <input
+            type="date"
+            name="to"
+            defaultValue={sp.to ?? ""}
+            className="auth-input"
+          />
+        </label>
+        <div className="flex items-end gap-2">
+          <button type="submit" className="btn-primary">
+            Filtrér
+          </button>
+          <Link
+            href="/admin/audit"
+            className="rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:bg-white/5"
+          >
+            Ryd
+          </Link>
+        </div>
+      </form>
+
+      <p className="text-sm text-zinc-500">{total} handlinger</p>
 
       <ul className="space-y-2">
         {rows.map((r) => (
@@ -118,10 +215,22 @@ export default async function AdminAuditPage() {
         ))}
         {rows.length === 0 ? (
           <li className="glass-card rounded-2xl p-4 text-sm text-zinc-500">
-            Ingen handlinger endnu.
+            Ingen handlinger fundet.
           </li>
         ) : null}
       </ul>
+
+      <Pagination
+        basePath="/admin/audit"
+        page={page}
+        pageCount={pageCount}
+        query={{
+          action: sp.action,
+          actor: sp.actor,
+          from: sp.from,
+          to: sp.to,
+        }}
+      />
     </div>
   );
 }

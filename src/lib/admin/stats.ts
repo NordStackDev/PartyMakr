@@ -29,6 +29,10 @@ export type OverviewData = {
   rsvpsGoing: number;
   rsvpsInterested: number;
   rsvpsMaybe: number;
+  signupsToday: number;
+  signupsYesterday: number;
+  signupsPrev7d: number;
+  activeUsers7d: number;
   reg: { hour: TimePoint[]; day: TimePoint[]; all: TimePoint[] };
   partySeries: TimePoint[];
   inviteSeries: TimePoint[];
@@ -136,8 +140,11 @@ async function allTimeSeries(
   return dailySeries(admin, table, dateCol, start, Math.max(days, 1));
 }
 
-async function recentActivity(admin: Admin): Promise<ActivityItem[]> {
-  const [signupsRes, partiesRes, invitesRes, authRes] = await Promise.all([
+async function recentActivity(
+  admin: Admin,
+  emailById: Map<string, string>,
+): Promise<ActivityItem[]> {
+  const [signupsRes, partiesRes, invitesRes] = await Promise.all([
     admin
       .from("profiles")
       .select("id, created_at")
@@ -153,12 +160,7 @@ async function recentActivity(admin: Admin): Promise<ActivityItem[]> {
       .select("party_id, invitee_id, invited_at")
       .order("invited_at", { ascending: false })
       .limit(8),
-    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
-
-  const emailById = new Map(
-    (authRes.data?.users ?? []).map((u) => [u.id, u.email ?? ""]),
-  );
 
   const inviteRows = (invitesRes.data ?? []) as {
     party_id: string;
@@ -210,8 +212,13 @@ export async function getOverviewData(): Promise<OverviewData> {
   const now = Date.now();
   const nowIso = new Date(now).toISOString();
   const days7Iso = new Date(now - 7 * DAY_MS).toISOString();
+  const days14Iso = new Date(now - 14 * DAY_MS).toISOString();
   const since30 = new Date(now - 29 * DAY_MS);
   since30.setUTCHours(0, 0, 0, 0);
+  const todayStart = new Date(now);
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const todayIso = todayStart.toISOString();
+  const yesterdayIso = new Date(todayStart.getTime() - DAY_MS).toISOString();
 
   const sel = (table: string) =>
     admin.from(table).select("*", { count: "exact", head: true });
@@ -256,15 +263,40 @@ export async function getOverviewData(): Promise<OverviewData> {
     countRows(sel("party_attendees").eq("status", "maybe")),
   ]);
 
-  const [regDay, regHour, regAll, partySeries, inviteSeries, recent] =
-    await Promise.all([
-      dailySeries(admin, "profiles", "created_at", since30, 30),
-      hourlySeries(admin, "profiles", "created_at"),
-      allTimeSeries(admin, "profiles", "created_at"),
-      dailySeries(admin, "parties", "created_at", since30, 30),
-      dailySeries(admin, "party_invites", "invited_at", since30, 30),
-      recentActivity(admin),
-    ]);
+  const [
+    signupsToday,
+    signupsYesterday,
+    signupsPrev7d,
+    regDay,
+    regHour,
+    regAll,
+    partySeries,
+    inviteSeries,
+    authRes,
+  ] = await Promise.all([
+    countRows(sel("profiles").gte("created_at", todayIso)),
+    countRows(
+      sel("profiles").gte("created_at", yesterdayIso).lt("created_at", todayIso),
+    ),
+    countRows(
+      sel("profiles").gte("created_at", days14Iso).lt("created_at", days7Iso),
+    ),
+    dailySeries(admin, "profiles", "created_at", since30, 30),
+    hourlySeries(admin, "profiles", "created_at"),
+    allTimeSeries(admin, "profiles", "created_at"),
+    dailySeries(admin, "parties", "created_at", since30, 30),
+    dailySeries(admin, "party_invites", "invited_at", since30, 30),
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+  ]);
+
+  const authUsers = authRes.data?.users ?? [];
+  const emailById = new Map(authUsers.map((u) => [u.id, u.email ?? ""]));
+  const activeUsers7d = authUsers.filter(
+    (u) =>
+      u.last_sign_in_at && new Date(u.last_sign_in_at).getTime() >= now - 7 * DAY_MS,
+  ).length;
+
+  const recent = await recentActivity(admin, emailById);
 
   return {
     usersTotal,
@@ -286,6 +318,10 @@ export async function getOverviewData(): Promise<OverviewData> {
     rsvpsGoing,
     rsvpsInterested,
     rsvpsMaybe,
+    signupsToday,
+    signupsYesterday,
+    signupsPrev7d,
+    activeUsers7d,
     reg: { hour: regHour, day: regDay, all: regAll },
     partySeries,
     inviteSeries,
