@@ -36,6 +36,23 @@ export async function signIn(formData: FormData) {
     withError("/login", translateAuthError(error));
   }
 
+  // Belt-and-suspenders over the GoTrue ban: reject banned accounts even within
+  // the residual access-token window, and sign them straight back out.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("banned_at")
+      .eq("id", user.id)
+      .single();
+    if (profile?.banned_at) {
+      await supabase.auth.signOut();
+      withError("/login", "Din konto er blokeret.");
+    }
+  }
+
   revalidatePath("/", "layout");
   redirect("/dashboard");
 }

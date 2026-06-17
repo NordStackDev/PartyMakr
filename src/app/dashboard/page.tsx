@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import { signOut } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/admin/guard";
 import { Brand } from "@/components/brand";
 
 export default async function DashboardPage() {
@@ -7,6 +10,8 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const admin = await isAdmin();
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
@@ -21,6 +26,15 @@ export default async function DashboardPage() {
         <p className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-zinc-400">
           Kortet med fester i nærheden kommer her.
         </p>
+
+        {admin ? (
+          <Link
+            href="/admin"
+            className="mt-6 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:brightness-110"
+          >
+            Åbn admin-panel
+          </Link>
+        ) : null}
 
         <form action={signOut} className="mt-8">
           <button
