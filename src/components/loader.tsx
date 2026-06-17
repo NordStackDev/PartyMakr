@@ -17,11 +17,11 @@ export function Loader({
       {withLogo ? (
         <div
           className="relative flex items-center justify-center"
-          style={{ width: 150, height: 150 }}
+          style={{ width: 112, height: 112 }}
         >
           <span
             className="pm-spinner absolute inset-0"
-            style={{ width: 150, height: 150 }}
+            style={{ width: 112, height: 112 }}
           />
           <Image
             src="/pm-mark.png"
