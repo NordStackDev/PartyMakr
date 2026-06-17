@@ -17,17 +17,17 @@ export function Loader({
       {withLogo ? (
         <div
           className="relative flex items-center justify-center"
-          style={{ width: 104, height: 104 }}
+          style={{ width: 150, height: 150 }}
         >
           <span
             className="pm-spinner absolute inset-0"
-            style={{ width: 104, height: 104 }}
+            style={{ width: 150, height: 150 }}
           />
           <Image
             src="/pm-mark.png"
             alt="PartyMakr"
-            width={64}
-            height={64}
+            width={96}
+            height={96}
             priority
             style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
           />
