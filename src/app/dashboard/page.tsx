@@ -25,7 +25,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#15102a] px-4 py-2.5">
+      <header className="z-[1000] flex items-center justify-between gap-2 rounded-b-2xl border-b border-white/10 bg-[#15102a] px-4 py-2.5 shadow-lg shadow-black/30">
         <Image
           src="/PM_final.svg"
           alt="PartyMakr"
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
         ) : null}
       </header>
 
-      <div className="relative flex-1">
+      <div className="relative -mt-5 flex-1">
         <MapHome radiusKm={radiusKm} />
       </div>
     </main>

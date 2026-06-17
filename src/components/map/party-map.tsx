@@ -185,7 +185,7 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
       center={center}
       zoom={12}
       scrollWheelZoom
-      className="absolute inset-0"
+      className="pm-fullmap absolute inset-0"
       style={{ background: "#120d22" }}
     >
       <TileLayer

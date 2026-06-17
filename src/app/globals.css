@@ -110,6 +110,15 @@ label,
   }
 }
 
+/* Full-bleed discovery map: the header and tab bar float over the map with
+   rounded corners, so nudge Leaflet's controls inward to clear them. */
+.pm-fullmap .leaflet-top {
+  top: 2rem;
+}
+.pm-fullmap .leaflet-bottom {
+  bottom: 1.75rem;
+}
+
 /* Native <select> dropdown options on dark inputs (otherwise light-on-light) */
 .auth-input option {
   background-color: #1b1530;
