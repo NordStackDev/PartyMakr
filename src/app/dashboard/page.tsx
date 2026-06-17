@@ -32,7 +32,7 @@ export default async function DashboardPage() {
             href="/admin"
             className="mt-6 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/30 transition hover:brightness-110"
           >
-            Åbn admin-panel
+            Åbn Admin Panelet
           </Link>
         ) : null}
 

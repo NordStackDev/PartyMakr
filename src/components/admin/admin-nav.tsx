@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const LINKS = [
-  { href: "/admin", label: "Oversigt" },
-  { href: "/admin/users", label: "Brugere" },
-  { href: "/admin/parties", label: "Fester" },
-  { href: "/admin/invites", label: "Invitationer" },
-  { href: "/admin/audit", label: "Logbog" },
+import type { PermissionKey } from "@/lib/admin/permissions";
+
+const LINKS: { href: string; label: string; perm: PermissionKey }[] = [
+  { href: "/admin", label: "Oversigt", perm: "overview" },
+  { href: "/admin/users", label: "Brugere", perm: "users" },
+  { href: "/admin/parties", label: "Fester", perm: "parties" },
+  { href: "/admin/invites", label: "Invitationer", perm: "invites" },
+  { href: "/admin/audit", label: "Logbog", perm: "audit" },
+  { href: "/admin/team", label: "Admins", perm: "manage_admins" },
 ];
 
-export function AdminNav() {
+export function AdminNav({ permissions }: { permissions: string[] }) {
   const pathname = usePathname();
+  const links = LINKS.filter((l) => permissions.includes(l.perm));
 
   return (
     <nav className="flex gap-1 overflow-x-auto">
-      {LINKS.map((link) => {
+      {links.map((link) => {
         const active =
           link.href === "/admin"
             ? pathname === "/admin"

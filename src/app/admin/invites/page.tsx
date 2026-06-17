@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/admin/guard";
+import { requirePermission } from "@/lib/admin/guard";
 import { revokeInvite } from "@/lib/admin/actions";
 import { ModerationButton } from "@/components/admin/moderation-button";
 
@@ -25,7 +25,8 @@ type Invite = {
 };
 
 export default async function AdminInvitesPage() {
-  await requireAdmin();
+  const { permissions } = await requirePermission("invites");
+  const canModerate = permissions.includes("moderate");
   const supabase = await createClient();
 
   const { data: invites } = await supabase
@@ -90,13 +91,15 @@ export default async function AdminInvitesPage() {
                 {formatDate(i.invited_at)}
               </p>
             </div>
-            <ModerationButton
-              action={revokeInvite.bind(null, i.party_id, i.invitee_id)}
-              confirm="Tilbagekald denne invitation?"
-              pendingText="Tilbagekalder…"
-            >
-              Tilbagekald
-            </ModerationButton>
+            {canModerate ? (
+              <ModerationButton
+                action={revokeInvite.bind(null, i.party_id, i.invitee_id)}
+                confirm="Tilbagekald denne invitation?"
+                pendingText="Tilbagekalder…"
+              >
+                Tilbagekald
+              </ModerationButton>
+            ) : null}
           </li>
         ))}
       </ul>

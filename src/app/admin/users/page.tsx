@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/admin/guard";
+import { requirePermission } from "@/lib/admin/guard";
 import { banUser, unbanUser, removeUser } from "@/lib/admin/actions";
 import { ModerationButton } from "@/components/admin/moderation-button";
 
@@ -21,7 +21,8 @@ type Profile = {
 };
 
 export default async function AdminUsersPage() {
-  const currentUser = await requireAdmin();
+  const { user: currentUser, permissions } = await requirePermission("users");
+  const canModerate = permissions.includes("moderate");
   const supabase = await createClient();
 
   const { data: profiles } = await supabase
@@ -74,7 +75,7 @@ export default async function AdminUsersPage() {
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-zinc-300">
                   Dig
                 </span>
-              ) : (
+              ) : !canModerate ? null : (
                 <div className="flex shrink-0 gap-2">
                   {banned ? (
                     <ModerationButton

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/admin/guard";
+import { requirePermission } from "@/lib/admin/guard";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -16,6 +16,9 @@ const ACTION_LABEL: Record<string, string> = {
   ban_user: "Udelukkede bruger",
   unban_user: "Ophævede udelukkelse",
   delete_user: "Slettede bruger",
+  add_admin: "Tilføjede admin",
+  update_admin: "Opdaterede admin-tilladelser",
+  remove_admin: "Fjernede admin",
 };
 
 type AuditRow = {
@@ -28,7 +31,7 @@ type AuditRow = {
 };
 
 export default async function AdminAuditPage() {
-  await requireAdmin();
+  await requirePermission("audit");
   const supabase = await createClient();
 
   const { data: log } = await supabase

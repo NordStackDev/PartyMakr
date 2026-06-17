@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { requireAdmin } from "@/lib/admin/guard";
+import { requireAdmin, getPermissions } from "@/lib/admin/guard";
 import { signOut } from "@/lib/auth/actions";
 import { LogoMark } from "@/components/logo-mark";
 import { AdminNav } from "@/components/admin/admin-nav";
@@ -12,6 +12,7 @@ export default async function AdminLayout({
 }) {
   // Authoritative gate. Every admin server action re-checks independently.
   await requireAdmin();
+  const permissions = await getPermissions();
 
   return (
     // Break out of the consumer phone-frame: a full-viewport admin surface.
@@ -46,7 +47,7 @@ export default async function AdminLayout({
         </header>
 
         <div className="mt-4">
-          <AdminNav />
+          <AdminNav permissions={permissions} />
         </div>
 
         <main className="mt-6 pb-12">{children}</main>

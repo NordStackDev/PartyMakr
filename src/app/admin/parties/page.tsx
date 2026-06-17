@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin } from "@/lib/admin/guard";
+import { requirePermission } from "@/lib/admin/guard";
 import { deleteParty } from "@/lib/admin/actions";
 import { ModerationButton } from "@/components/admin/moderation-button";
 
@@ -21,7 +21,8 @@ type Party = {
 };
 
 export default async function AdminPartiesPage() {
-  await requireAdmin();
+  const { permissions } = await requirePermission("parties");
+  const canModerate = permissions.includes("moderate");
   const supabase = await createClient();
 
   const { data: parties } = await supabase
@@ -73,13 +74,15 @@ export default async function AdminPartiesPage() {
                 {formatDate(p.starts_at)}
               </p>
             </div>
-            <ModerationButton
-              action={deleteParty.bind(null, p.id)}
-              confirm="Slet denne fest permanent?"
-              pendingText="Sletter…"
-            >
-              Slet
-            </ModerationButton>
+            {canModerate ? (
+              <ModerationButton
+                action={deleteParty.bind(null, p.id)}
+                confirm="Slet denne fest permanent?"
+                pendingText="Sletter…"
+              >
+                Slet
+              </ModerationButton>
+            ) : null}
           </li>
         ))}
       </ul>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getPermissions } from "@/lib/admin/guard";
 import { StatCard } from "@/components/admin/stat-card";
 import { BarChart } from "@/components/admin/charts/bar-chart";
 import { Donut } from "@/components/admin/charts/donut";
@@ -32,6 +33,18 @@ function toSeries(rows: DailyRow[] | null): TimePoint[] {
 }
 
 export default async function AdminOverviewPage() {
+  // The admin home is reachable by any admin; show overview only with the
+  // 'overview' permission, otherwise a neutral placeholder (avoids redirect
+  // loops for admins who only have other sections).
+  const permissions = await getPermissions();
+  if (!permissions.includes("overview")) {
+    return (
+      <div className="glass-card rounded-2xl p-8 text-center text-sm text-zinc-400">
+        Vælg en sektion i menuen ovenfor.
+      </div>
+    );
+  }
+
   const supabase = await createClient();
 
   const [statsRes, regRes, partyRes] = await Promise.all([
