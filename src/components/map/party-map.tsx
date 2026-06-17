@@ -197,7 +197,8 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
 
       {parties.map((p) => {
         const center = fuzzedCenter(p.lat, p.lon, p.id);
-        const fill = fillFor(p.going_count, p.capacity);
+        const going = p.going_count ?? 0;
+        const fill = fillFor(going, p.capacity);
         return (
           <Fragment key={p.id}>
             <Circle
@@ -218,7 +219,7 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
                     />
                     <span className="text-zinc-700">
                       {fill.label}
-                      {p.capacity ? ` · ${p.going_count}/${p.capacity}` : ""}
+                      {p.capacity ? ` · ${going}/${p.capacity}` : ""}
                     </span>
                   </p>
                   <p className="text-[11px] text-zinc-400">Omtrentligt område</p>
