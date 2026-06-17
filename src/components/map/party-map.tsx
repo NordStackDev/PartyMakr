@@ -4,7 +4,14 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Circle,
+  AttributionControl,
+} from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -185,9 +192,11 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
       center={center}
       zoom={12}
       scrollWheelZoom
+      attributionControl={false}
       className="pm-fullmap absolute inset-0"
       style={{ background: "#120d22" }}
     >
+      <AttributionControl position="bottomleft" />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
