@@ -25,7 +25,7 @@ export function Brand({
         className="drop-shadow-[0_0_28px_rgba(252,190,79,0.25)]"
       />
       {tagline ? (
-        <p className="mt-3 text-sm text-zinc-400">{tagline}</p>
+        <p className="mt-3 text-sm text-zinc-200">{tagline}</p>
       ) : null}
     </div>
   );

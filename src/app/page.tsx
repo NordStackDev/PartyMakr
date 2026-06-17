@@ -17,7 +17,7 @@ export default async function HomePage() {
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
       <Brand size="lg" />
 
-      <p className="mt-4 max-w-xs text-base text-zinc-400">
+      <p className="mt-4 max-w-xs text-base text-zinc-200">
         Find fester i nærheden af dig. Hvis du mangler socialicering, så er det her stedet for dig. Opret en konto og kom i gang!
       </p>
 
@@ -30,7 +30,7 @@ export default async function HomePage() {
         </Link>
       </div>
 
-      <p className="mt-10 text-xs text-zinc-500">
+      <p className="mt-10 text-xs text-zinc-300">
         Offentlige events · venners sammenkomster · private fester
       </p>
     </main>
