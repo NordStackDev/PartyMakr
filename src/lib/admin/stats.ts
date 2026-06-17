@@ -29,13 +29,19 @@ export type OverviewData = {
   rsvpsGoing: number;
   rsvpsInterested: number;
   rsvpsMaybe: number;
-  regSeries: TimePoint[];
+  reg: { hour: TimePoint[]; day: TimePoint[]; all: TimePoint[] };
   partySeries: TimePoint[];
   inviteSeries: TimePoint[];
   recent: ActivityItem[];
 };
 
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+
+function labelDay(key: string): string {
+  const [, m, d] = key.split("-");
+  return d && m ? `${d}/${m}` : key;
+}
 
 async function countRows(
   query: PromiseLike<{ count: number | null }>,
@@ -66,7 +72,68 @@ async function dailySeries(
     const day = new Date(row[dateCol]).toISOString().slice(0, 10);
     if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + 1);
   }
-  return [...buckets.entries()].map(([day, count]) => ({ day, count }));
+  return [...buckets.entries()].map(([day, count]) => ({
+    day,
+    count,
+    label: labelDay(day),
+  }));
+}
+
+/** Hourly buckets over the last 24 hours. */
+async function hourlySeries(
+  admin: Admin,
+  table: string,
+  dateCol: string,
+): Promise<TimePoint[]> {
+  const base = new Date();
+  base.setUTCMinutes(0, 0, 0);
+  const since = new Date(base.getTime() - 23 * HOUR_MS);
+
+  const { data } = await admin
+    .from(table)
+    .select(dateCol)
+    .gte(dateCol, since.toISOString());
+
+  const buckets = new Map<string, number>();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(since.getTime() + i * HOUR_MS);
+    buckets.set(d.toISOString().slice(0, 13), 0);
+  }
+  for (const row of (data ?? []) as unknown as Record<string, string>[]) {
+    const key = new Date(row[dateCol]).toISOString().slice(0, 13);
+    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + 1);
+  }
+  return [...buckets.entries()].map(([key, count]) => ({
+    day: key,
+    count,
+    label: `${key.slice(11, 13)}:00`,
+  }));
+}
+
+/** Daily buckets from the first row's date to today. */
+async function allTimeSeries(
+  admin: Admin,
+  table: string,
+  dateCol: string,
+): Promise<TimePoint[]> {
+  const { data } = await admin
+    .from(table)
+    .select(dateCol)
+    .order(dateCol, { ascending: true })
+    .limit(1);
+  const first = ((data ?? []) as unknown as Record<string, string>[])[0];
+
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  if (!first) {
+    const key = today.toISOString().slice(0, 10);
+    return [{ day: key, count: 0, label: labelDay(key) }];
+  }
+
+  const start = new Date(first[dateCol]);
+  start.setUTCHours(0, 0, 0, 0);
+  const days = Math.floor((today.getTime() - start.getTime()) / DAY_MS) + 1;
+  return dailySeries(admin, table, dateCol, start, Math.max(days, 1));
 }
 
 async function recentActivity(admin: Admin): Promise<ActivityItem[]> {
@@ -189,12 +256,15 @@ export async function getOverviewData(): Promise<OverviewData> {
     countRows(sel("party_attendees").eq("status", "maybe")),
   ]);
 
-  const [regSeries, partySeries, inviteSeries, recent] = await Promise.all([
-    dailySeries(admin, "profiles", "created_at", since30, 30),
-    dailySeries(admin, "parties", "created_at", since30, 30),
-    dailySeries(admin, "party_invites", "invited_at", since30, 30),
-    recentActivity(admin),
-  ]);
+  const [regDay, regHour, regAll, partySeries, inviteSeries, recent] =
+    await Promise.all([
+      dailySeries(admin, "profiles", "created_at", since30, 30),
+      hourlySeries(admin, "profiles", "created_at"),
+      allTimeSeries(admin, "profiles", "created_at"),
+      dailySeries(admin, "parties", "created_at", since30, 30),
+      dailySeries(admin, "party_invites", "invited_at", since30, 30),
+      recentActivity(admin),
+    ]);
 
   return {
     usersTotal,
@@ -216,7 +286,7 @@ export async function getOverviewData(): Promise<OverviewData> {
     rsvpsGoing,
     rsvpsInterested,
     rsvpsMaybe,
-    regSeries,
+    reg: { hour: regHour, day: regDay, all: regAll },
     partySeries,
     inviteSeries,
     recent,

@@ -60,7 +60,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Live registrations */}
-      <LiveRegistrationsChart seed={data.regSeries} />
+      <LiveRegistrationsChart series={data.reg} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="glass-card rounded-2xl p-5">
