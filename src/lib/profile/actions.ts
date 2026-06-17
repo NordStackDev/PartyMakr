@@ -43,3 +43,23 @@ export async function updateSettings(formData: FormData) {
   revalidatePath("/dashboard");
   redirect("/settings?saved=1");
 }
+
+/** Persist a new avatar URL (file already uploaded to storage client-side). */
+export async function updateAvatar(url: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: url || null })
+    .eq("id", user.id);
+  if (error) {
+    throw new Error("Kunne ikke gemme profilbilledet.");
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+}
