@@ -44,9 +44,11 @@ export function BurgerMenu() {
         <Menu size={16} />
       </button>
 
-      {/* Scrim + slide-up sheet */}
+      {/* Scrim + slide-up sheet. Fixed so it anchors to the phone-frame card
+          (its backdrop-filter makes it the containing block) instead of this
+          small top-right button cluster. */}
       <div
-        className={`absolute inset-0 z-[1100] ${open ? "" : "pointer-events-none"}`}
+        className={`fixed inset-0 z-[1100] ${open ? "" : "pointer-events-none"}`}
       >
         <button
           type="button"
