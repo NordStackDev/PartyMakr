@@ -26,10 +26,15 @@ export default async function DashboardPage() {
   return (
     <main className="flex flex-1 flex-col">
       <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-[#15102a] px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <Image src="/pm-mark.png" alt="PartyMakr" width={32} height={32} />
-          <span className="text-sm font-bold text-white">PartyMakr</span>
-        </div>
+        <Image
+          src="/PM_final.svg"
+          alt="PartyMakr"
+          width={1280}
+          height={720}
+          priority
+          unoptimized
+          className="h-8 w-auto"
+        />
         {admin ? (
           <Link
             href="/admin"
