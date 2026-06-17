@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import type { PermissionKey } from "@/lib/admin/permissions";
 
 type AdminContext = {
@@ -15,14 +17,15 @@ type AdminContext = {
  * Reads the current user's own admin row. Backed by the admin_users "self-read"
  * RLS policy (user_id = auth.uid()), so no SECURITY DEFINER RPC is needed — a
  * non-admin simply has no row.
+ *
+ * Wrapped in React `cache()` so requireAdmin + getPermissions + requirePermission
+ * within one request share a single auth round-trip + a single admin_users read.
  */
-async function adminContext(): Promise<AdminContext> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const adminContext = cache(async (): Promise<AdminContext> => {
+  const user = await getCurrentUser();
   if (!user) return { userId: null, isAdmin: false, permissions: [] };
 
+  const supabase = await createClient();
   const { data } = await supabase
     .from("admin_users")
     .select("permissions")
@@ -34,7 +37,7 @@ async function adminContext(): Promise<AdminContext> {
     isAdmin: !!data,
     permissions: (data?.permissions ?? []) as string[],
   };
-}
+});
 
 export async function isAdmin(): Promise<boolean> {
   return (await adminContext()).isAdmin;

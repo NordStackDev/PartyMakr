@@ -4,13 +4,12 @@ import { Shield } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
+import { getCurrentUser } from "@/lib/auth/user";
 import { MapHome } from "@/components/map/map-home";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [admin, { data: profile }] = await Promise.all([
     isAdmin(),
