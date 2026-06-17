@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPermissions } from "@/lib/admin/guard";
 import { StatCard } from "@/components/admin/stat-card";
 import { BarChart } from "@/components/admin/charts/bar-chart";
@@ -45,7 +45,9 @@ export default async function AdminOverviewPage() {
     );
   }
 
-  const supabase = await createClient();
+  // The aggregate functions are service_role-only (they bypass RLS to count
+  // globally); we've already verified 'overview' above.
+  const supabase = createAdminClient();
 
   const [statsRes, regRes, partyRes] = await Promise.all([
     supabase.rpc("admin_overview_stats"),

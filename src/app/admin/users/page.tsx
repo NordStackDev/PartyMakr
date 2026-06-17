@@ -21,7 +21,8 @@ type Profile = {
 };
 
 export default async function AdminUsersPage() {
-  const { user: currentUser, permissions } = await requirePermission("users");
+  const { userId: currentUserId, permissions } =
+    await requirePermission("users");
   const canModerate = permissions.includes("moderate");
   const supabase = await createClient();
 
@@ -51,7 +52,7 @@ export default async function AdminUsersPage() {
       <ul className="space-y-2">
         {rows.map((u) => {
           const banned = !!u.banned_at;
-          const isSelf = u.id === currentUser.id;
+          const isSelf = u.id === currentUserId;
           return (
             <li
               key={u.id}

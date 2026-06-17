@@ -11,10 +11,33 @@ import { PERMISSION_KEYS } from "@/lib/admin/permissions";
 const PERMANENT_BAN = "876000h";
 
 /**
+ * Write an audit row via the service role. The audit table has no INSERT policy
+ * for authenticated users (append-only), so the service role is the only write
+ * path. `actorId` comes from the server-side permission check, so it can't be
+ * forged by a client.
+ */
+async function audit(
+  actorId: string,
+  action: string,
+  targetType: string,
+  targetId: string | null,
+  metadata: Record<string, unknown> = {},
+) {
+  const admin = createAdminClient();
+  await admin.from("admin_audit_log").insert({
+    actor_id: actorId,
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    metadata,
+  });
+}
+
+/**
  * Delete any party. Authorized by the admin DELETE RLS policy; audited.
  */
 export async function deleteParty(partyId: string) {
-  await assertPermission("moderate");
+  const actorId = await assertPermission("moderate");
   const supabase = await createClient();
 
   const { error } = await supabase.from("parties").delete().eq("id", partyId);
@@ -22,11 +45,7 @@ export async function deleteParty(partyId: string) {
     throw new Error("Kunne ikke slette festen.");
   }
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "delete_party",
-    p_target_type: "party",
-    p_target_id: partyId,
-  });
+  await audit(actorId, "delete_party", "party", partyId);
 
   revalidatePath("/admin/parties");
   revalidatePath("/admin");
@@ -36,7 +55,7 @@ export async function deleteParty(partyId: string) {
  * Revoke an invite. Authorized by the admin DELETE RLS policy; audited.
  */
 export async function revokeInvite(partyId: string, inviteeId: string) {
-  await assertPermission("moderate");
+  const actorId = await assertPermission("moderate");
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -48,11 +67,7 @@ export async function revokeInvite(partyId: string, inviteeId: string) {
     throw new Error("Kunne ikke tilbagekalde invitationen.");
   }
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "revoke_invite",
-    p_target_type: "invite",
-    p_target_id: `${partyId}:${inviteeId}`,
-  });
+  await audit(actorId, "revoke_invite", "invite", `${partyId}:${inviteeId}`);
 
   revalidatePath("/admin/invites");
   revalidatePath("/admin");
@@ -63,7 +78,7 @@ export async function revokeInvite(partyId: string, inviteeId: string) {
  * the profile as banned (app-level flag used by sign-in). Audited.
  */
 export async function banUser(userId: string) {
-  await assertPermission("moderate");
+  const actorId = await assertPermission("moderate");
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -79,11 +94,7 @@ export async function banUser(userId: string) {
     .update({ banned_at: new Date().toISOString() })
     .eq("id", userId);
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "ban_user",
-    p_target_type: "user",
-    p_target_id: userId,
-  });
+  await audit(actorId, "ban_user", "user", userId);
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
@@ -95,20 +106,15 @@ export async function banUser(userId: string) {
  * and RSVPs. Irreversible. Admins cannot delete their own account. Audited.
  */
 export async function removeUser(userId: string) {
-  const admin_user = await assertPermission("moderate");
-  if (admin_user.id === userId) {
+  const actorId = await assertPermission("moderate");
+  if (actorId === userId) {
     throw new Error("Du kan ikke slette din egen konto.");
   }
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   // Record the audit entry BEFORE deletion (actor stays; target row is gone).
-  await supabase.rpc("log_admin_action", {
-    p_action: "delete_user",
-    p_target_type: "user",
-    p_target_id: userId,
-  });
+  await audit(actorId, "delete_user", "user", userId);
 
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
@@ -123,7 +129,7 @@ export async function removeUser(userId: string) {
  * Lift a ban: clear the auth ban and the profile flag. Audited.
  */
 export async function unbanUser(userId: string) {
-  await assertPermission("moderate");
+  const actorId = await assertPermission("moderate");
   const supabase = await createClient();
   const admin = createAdminClient();
 
@@ -139,11 +145,7 @@ export async function unbanUser(userId: string) {
     .update({ banned_at: null })
     .eq("id", userId);
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "unban_user",
-    p_target_type: "user",
-    p_target_id: userId,
-  });
+  await audit(actorId, "unban_user", "user", userId);
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
@@ -155,7 +157,9 @@ export async function unbanUser(userId: string) {
 
 function sanitizePermissions(permissions: string[]): string[] {
   // Only allow known permission keys; dedupe.
-  return [...new Set(permissions.filter((p) => PERMISSION_KEYS.includes(p as never)))];
+  return [
+    ...new Set(permissions.filter((p) => PERMISSION_KEYS.includes(p as never))),
+  ];
 }
 
 /**
@@ -164,14 +168,13 @@ function sanitizePermissions(permissions: string[]): string[] {
  * invite email is sent (creating the account) and they're granted on creation.
  */
 export async function addAdmin(email: string, permissions: string[]) {
-  await assertPermission("manage_admins");
+  const actorId = await assertPermission("manage_admins");
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) {
     throw new Error("Indtast en e-mailadresse.");
   }
   const perms = sanitizePermissions(permissions);
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   // Find an existing auth user with this email.
@@ -197,16 +200,17 @@ export async function addAdmin(email: string, permissions: string[]) {
 
   const { error } = await admin
     .from("admin_users")
-    .upsert({ user_id: targetId, permissions: perms }, { onConflict: "user_id" });
+    .upsert(
+      { user_id: targetId, permissions: perms },
+      { onConflict: "user_id" },
+    );
   if (error) {
     throw new Error("Kunne ikke tilføje admin.");
   }
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "add_admin",
-    p_target_type: "user",
-    p_target_id: targetId,
-    p_metadata: { email: cleanEmail, permissions: perms },
+  await audit(actorId, "add_admin", "user", targetId, {
+    email: cleanEmail,
+    permissions: perms,
   });
 
   revalidatePath("/admin/team");
@@ -219,10 +223,9 @@ export async function updateAdminPermissions(
   userId: string,
   permissions: string[],
 ) {
-  await assertPermission("manage_admins");
+  const actorId = await assertPermission("manage_admins");
   const perms = sanitizePermissions(permissions);
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   const { error } = await admin
@@ -233,12 +236,7 @@ export async function updateAdminPermissions(
     throw new Error("Kunne ikke opdatere tilladelser.");
   }
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "update_admin",
-    p_target_type: "user",
-    p_target_id: userId,
-    p_metadata: { permissions: perms },
-  });
+  await audit(actorId, "update_admin", "user", userId, { permissions: perms });
 
   revalidatePath("/admin/team");
 }
@@ -248,12 +246,11 @@ export async function updateAdminPermissions(
  * admin cannot revoke their own access (avoids locking out the last manager).
  */
 export async function removeAdmin(userId: string) {
-  const self = await assertPermission("manage_admins");
-  if (self.id === userId) {
+  const actorId = await assertPermission("manage_admins");
+  if (actorId === userId) {
     throw new Error("Du kan ikke fjerne din egen admin-adgang.");
   }
 
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   const { error } = await admin
@@ -264,11 +261,7 @@ export async function removeAdmin(userId: string) {
     throw new Error("Kunne ikke fjerne admin.");
   }
 
-  await supabase.rpc("log_admin_action", {
-    p_action: "remove_admin",
-    p_target_type: "user",
-    p_target_id: userId,
-  });
+  await audit(actorId, "remove_admin", "user", userId);
 
   revalidatePath("/admin/team");
 }

@@ -9,7 +9,7 @@ type AdminUser = {
 };
 
 export default async function AdminTeamPage() {
-  const { user } = await requirePermission("manage_admins");
+  const { userId } = await requirePermission("manage_admins");
   const supabase = await createClient();
 
   const { data: admins } = await supabase
@@ -48,7 +48,7 @@ export default async function AdminTeamPage() {
             userId={a.user_id}
             email={emailById.get(a.user_id) || a.user_id}
             permissions={a.permissions}
-            isSelf={a.user_id === user.id}
+            isSelf={a.user_id === userId}
           />
         ))}
       </div>
