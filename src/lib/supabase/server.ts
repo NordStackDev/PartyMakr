@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { identityFetch } from "@/lib/supabase/fetch";
+
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -8,6 +10,7 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: identityFetch },
       cookies: {
         getAll() {
           return cookieStore.getAll();

@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { identityFetch } from "@/lib/supabase/fetch";
+
 /**
  * Service-role Supabase client — bypasses RLS and can call the Auth Admin API
  * (ban / delete users). DANGEROUS: it must never reach the browser.
@@ -22,6 +24,7 @@ export function createAdminClient() {
   }
 
   return createClient(url, serviceKey, {
+    global: { fetch: identityFetch },
     auth: {
       autoRefreshToken: false,
       persistSession: false,
