@@ -19,7 +19,7 @@ export function AdminNav({ permissions }: { permissions: string[] }) {
   const links = LINKS.filter((l) => permissions.includes(l.perm));
 
   return (
-    <nav className="flex gap-1 overflow-x-auto">
+    <nav className="scroll-touch -mx-1 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {links.map((link) => {
         const active =
           link.href === "/admin"
@@ -29,7 +29,7 @@ export function AdminNav({ permissions }: { permissions: string[] }) {
           <Link
             key={link.href}
             href={link.href}
-            className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+            className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full px-3.5 text-sm font-medium transition ${
               active
                 ? "bg-white/10 text-white"
                 : "text-zinc-300 hover:bg-white/5 hover:text-zinc-200"

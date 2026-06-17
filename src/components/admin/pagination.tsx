@@ -29,7 +29,7 @@ export function Pagination({
   };
 
   const linkClass =
-    "rounded-full border border-white/15 px-3 py-1.5 text-sm font-medium text-zinc-200 transition hover:bg-white/5";
+    "inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-sm font-medium text-zinc-200 transition hover:bg-white/5";
 
   return (
     <div className="flex items-center justify-between pt-2 text-sm">

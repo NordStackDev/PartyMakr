@@ -15,8 +15,8 @@ export function StatCard({
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-300">
         {label}
       </p>
-      <div className="mt-1 flex items-baseline gap-2">
-        <p className="text-2xl font-bold text-white">{value}</p>
+      <div className="mt-1 flex min-w-0 items-baseline gap-2">
+        <p className="truncate text-2xl font-bold text-white">{value}</p>
         {trend != null ? (
           <span
             className={`text-xs font-semibold ${

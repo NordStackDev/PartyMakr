@@ -32,12 +32,12 @@ export default async function DashboardPage() {
       {/* Logo floats over the map — no background bar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex justify-center pt-1">
         <Image
-          src="/PM_final.svg"
+          src="/pm-logo.png"
           alt="PartyMakr"
-          width={1280}
-          height={720}
+          width={720}
+          height={466}
           priority
-          unoptimized
+          sizes="160px"
           className="h-24 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]"
         />
       </div>

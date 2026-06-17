@@ -36,7 +36,7 @@ export function ModerationButton({
           await action();
         });
       }}
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${styles}`}
+      className={`inline-flex min-h-11 items-center rounded-full border px-3.5 text-xs font-semibold transition disabled:opacity-60 ${styles}`}
     >
       {pending ? pendingText : children}
     </button>

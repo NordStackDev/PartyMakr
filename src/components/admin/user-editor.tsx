@@ -231,7 +231,7 @@ function AdminRoleSection({
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-2 @sm:grid-cols-2">
         {ADMIN_PERMISSIONS.map((p) => (
           <label
             key={p.key}

@@ -41,7 +41,7 @@ export default async function AdminOverviewPage() {
       <h1 className="text-lg font-semibold text-white">Oversigt</h1>
 
       {/* Growth & engagement */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="Nye i dag"
           value={data.signupsToday}
@@ -67,7 +67,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Key metrics — all real, read straight from the tables */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           label="Konti i alt"
           value={data.usersTotal}
@@ -93,7 +93,7 @@ export default async function AdminOverviewPage() {
       {/* Live registrations */}
       <LiveRegistrationsChart series={data.reg} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6">
         <div className="glass-card rounded-2xl p-5">
           <h2 className="mb-3 text-sm font-semibold text-white">
             Oprettede fester (30 dage)

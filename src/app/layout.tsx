@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { BottomNav } from "@/components/nav/bottom-nav";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PartyMakr",
   description: "Find fester i nærheden af dig — på et kort, ikke et feed.",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent" },
+  applicationName: "PartyMakr",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "PartyMakr",
+  },
 };
 
 export const viewport: Viewport = {
@@ -70,6 +76,7 @@ export default function RootLayout({
             <BottomNav />
           </div>
         </div>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

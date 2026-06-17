@@ -144,7 +144,7 @@ export default async function AdminAuditPage({
 
       <form
         method="get"
-        className="glass-card grid grid-cols-1 gap-3 rounded-2xl p-4 sm:grid-cols-2 lg:grid-cols-5"
+        className="glass-card grid grid-cols-1 gap-3 rounded-2xl p-4 @sm:grid-cols-2"
       >
         <label className="block">
           <span className="auth-label text-xs">Handling</span>

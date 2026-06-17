@@ -93,7 +93,7 @@ export default async function AdminInvitesPage({
         {rows.map((i) => (
           <li
             key={`${i.party_id}:${i.invitee_id}`}
-            className="glass-card flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="glass-card flex flex-col gap-3 rounded-2xl p-4 @sm:flex-row @sm:items-center @sm:justify-between"
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-white">
