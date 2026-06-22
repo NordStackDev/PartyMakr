@@ -50,7 +50,7 @@
 /* Fluid root type: scales the whole rem-based type + spacing system between a
    small phone and a large screen without touching individual utilities. */
 html {
-  font-size: clamp(15px, 14px + 0.3vw, 17px);
+  font-size: clamp(13.5px, 12.8px + 0.35vw, 15.5px);
 }
 
 html,
