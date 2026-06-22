@@ -1,18 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito, Fredoka } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body / UI — soft, rounded, highly legible (harmonises with the logo).
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Display / brand — rounded & chunky, echoes the PARTYMAKR wordmark.
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -47,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="da"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${nunito.variable} ${fredoka.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <a

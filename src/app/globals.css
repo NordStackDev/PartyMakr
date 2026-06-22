@@ -42,8 +42,9 @@
   --color-brand-hover: var(--brand-hover);
   --color-accent: var(--accent);
   --color-muted: var(--muted);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-fredoka);
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
 }
 
 /* Fluid root type: scales the whole rem-based type + spacing system between a
@@ -60,8 +61,18 @@ body {
 }
 
 body {
-  font-family: var(--font-geist-sans), system-ui, Arial, sans-serif;
+  font-family: var(--font-nunito), system-ui, Arial, sans-serif;
   overscroll-behavior: none;
+}
+
+/* Headings + brand wordmark use the rounded display face (Fredoka) so the UI
+   echoes the PARTYMAKR logo; body copy stays in the legible Nunito. */
+h1,
+h2,
+h3,
+.brand-gradient {
+  font-family: var(--font-fredoka), var(--font-nunito), system-ui, sans-serif;
+  letter-spacing: 0.01em;
 }
 
 /* ---------------------------------------------------------------------------
