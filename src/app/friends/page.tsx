@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import {
+  sendFriendRequest,
   acceptFriendRequest,
   declineFriendRequest,
   cancelRequest,
   removeFriend,
 } from "@/lib/friends/actions";
-import { FindFriends } from "@/components/friends/find-friends";
 import { Avatar } from "@/components/friends/avatar";
 
 type Friendship = {
@@ -37,15 +37,16 @@ export default async function FriendsPage() {
   const otherId = (r: Friendship) =>
     r.requester_id === user.id ? r.addressee_id : r.requester_id;
 
-  const ids = [...new Set(rows.map(otherId))];
   const profiles = new Map<string, Profile>();
-  if (ids.length > 0) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, display_name, username, avatar_url")
-      .in("id", ids);
-    for (const p of (data ?? []) as Profile[]) profiles.set(p.id, p);
-  }
+
+  // Everyone else with an account — the directory to browse + add from.
+  const { data: everyone } = await supabase
+    .from("profiles")
+    .select("id, display_name, username, avatar_url")
+    .neq("id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  for (const p of (everyone ?? []) as Profile[]) profiles.set(p.id, p);
 
   const incoming = rows
     .filter((r) => r.status === "pending" && r.addressee_id === user.id)
@@ -54,6 +55,12 @@ export default async function FriendsPage() {
     .filter((r) => r.status === "pending" && r.requester_id === user.id)
     .map((r) => r.addressee_id);
   const friends = rows.filter((r) => r.status === "accepted").map(otherId);
+
+  // The directory excludes people already surfaced in the sections above.
+  const connected = new Set<string>([...friends, ...incoming, ...outgoing]);
+  const others = ((everyone ?? []) as Profile[])
+    .map((p) => p.id)
+    .filter((id) => !connected.has(id));
 
   function Person({ id }: { id: string }) {
     const p = profiles.get(id);
@@ -78,10 +85,6 @@ export default async function FriendsPage() {
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <h1 className="text-xl font-semibold tracking-tight text-white">Venner</h1>
-
-      <div className="mt-4">
-        <FindFriends />
-      </div>
 
       {incoming.length > 0 ? (
         <section className="mt-6">
@@ -140,7 +143,7 @@ export default async function FriendsPage() {
           {friends.length === 0 ? (
             <li className="glass-card rounded-2xl p-6 text-center text-sm text-zinc-400">
               {empty
-                ? "Du har ingen venner endnu. Søg efter folk ovenfor for at tilføje dem."
+                ? "Du har ingen venner endnu. Tilføj folk fra listen nedenfor."
                 : "Ingen venner endnu."}
             </li>
           ) : null}
@@ -172,6 +175,38 @@ export default async function FriendsPage() {
           </ul>
         </section>
       ) : null}
+
+      <section className="mt-6">
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          Alle brugere
+        </h2>
+        <ul className="mt-2 space-y-2">
+          {others.map((id) => (
+            <li
+              key={id}
+              className="glass-card flex items-center gap-2 rounded-2xl p-3"
+            >
+              <Person id={id} />
+              <form
+                action={sendFriendRequest.bind(null, id)}
+                className="ml-auto shrink-0"
+              >
+                <button
+                  type="submit"
+                  className="rounded-full bg-[var(--brand)] px-3 py-1.5 text-xs font-semibold text-zinc-950 transition active:brightness-95"
+                >
+                  Tilføj
+                </button>
+              </form>
+            </li>
+          ))}
+          {others.length === 0 ? (
+            <li className="glass-card rounded-2xl p-6 text-center text-sm text-zinc-400">
+              Ingen andre brugere endnu.
+            </li>
+          ) : null}
+        </ul>
+      </section>
     </main>
   );
 }
