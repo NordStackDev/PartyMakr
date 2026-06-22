@@ -251,7 +251,7 @@ export default function PartyMap({
   }
 
   const ctrl =
-    "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95";
+    "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95";
 
   return (
     <>
@@ -351,11 +351,11 @@ export default function PartyMap({
         })}
       </MapContainer>
 
-      {/* Map controls — one glass column, vertically centred on the left edge. */}
-      <div className="absolute left-3 top-1/2 z-[1000] flex -translate-y-1/2 flex-col gap-2">
+      {/* Map controls — a small glass row just above the floating tab bar. */}
+      <div className="absolute bottom-[calc(var(--nav-height)+0.6rem)] left-3 z-[1000] flex flex-row gap-2">
         {admin ? (
           <Link href="/admin" aria-label="Admin" className={ctrl}>
-            <Shield size={18} />
+            <Shield size={16} />
           </Link>
         ) : null}
         <button
@@ -364,7 +364,7 @@ export default function PartyMap({
           aria-label="Zoom ind"
           className={ctrl}
         >
-          <Plus size={20} />
+          <Plus size={18} />
         </button>
         <button
           type="button"
@@ -372,7 +372,7 @@ export default function PartyMap({
           aria-label="Zoom ud"
           className={ctrl}
         >
-          <Minus size={20} />
+          <Minus size={18} />
         </button>
         <button
           type="button"
@@ -381,7 +381,7 @@ export default function PartyMap({
           aria-pressed={base === "satellite"}
           className={ctrl}
         >
-          <Layers size={18} />
+          <Layers size={16} />
         </button>
         <button
           type="button"
@@ -390,7 +390,7 @@ export default function PartyMap({
           className={ctrl}
         >
           <LocateFixed
-            size={20}
+            size={18}
             className={locating ? "animate-spin text-amber-300" : ""}
           />
         </button>
