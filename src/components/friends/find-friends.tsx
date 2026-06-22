@@ -77,10 +77,15 @@ export function FindFriends() {
               key={r.id}
               className="glass-card flex items-center gap-3 rounded-2xl p-3"
             >
-              <Avatar url={r.avatar_url} name={r.username} size={40} />
-              <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">
-                {r.username ? `@${r.username}` : r.display_name || "Bruger uden navn"}
-              </p>
+              <Avatar url={r.avatar_url} name={r.display_name} size={40} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-white">
+                  {r.display_name || r.username || "Bruger uden navn"}
+                </p>
+                {r.username ? (
+                  <p className="truncate text-xs text-zinc-400">@{r.username}</p>
+                ) : null}
+              </div>
 
               {r.status === "none" ? (
                 <button
