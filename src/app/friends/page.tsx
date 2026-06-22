@@ -10,6 +10,7 @@ import {
   removeFriend,
 } from "@/lib/friends/actions";
 import { Avatar } from "@/components/friends/avatar";
+import { ConfirmButton } from "@/components/friends/confirm-button";
 
 type Friendship = {
   requester_id: string;
@@ -124,22 +125,25 @@ export default async function FriendsPage() {
           Dine venner{friends.length > 0 ? ` · ${friends.length}` : ""}
         </h2>
         <ul className="mt-2 space-y-2">
-          {friends.map((id) => (
-            <li
-              key={id}
-              className="glass-card flex items-center gap-2 rounded-2xl p-3"
-            >
-              <Person id={id} />
-              <form
-                action={removeFriend.bind(null, id)}
-                className="ml-auto shrink-0"
+          {friends.map((id) => {
+            const p = profiles.get(id);
+            const name = p?.display_name || p?.username || "denne ven";
+            return (
+              <li
+                key={id}
+                className="glass-card flex items-center gap-2 rounded-2xl p-3"
               >
-                <button type="submit" className={ghost}>
+                <Person id={id} />
+                <ConfirmButton
+                  action={removeFriend.bind(null, id)}
+                  confirm={`Er du sikker på at du vil fjerne ${name} som ven?`}
+                  className={`ml-auto ${ghost}`}
+                >
                   Fjern
-                </button>
-              </form>
-            </li>
-          ))}
+                </ConfirmButton>
+              </li>
+            );
+          })}
           {friends.length === 0 ? (
             <li className="glass-card rounded-2xl p-6 text-center text-sm text-zinc-400">
               {empty
