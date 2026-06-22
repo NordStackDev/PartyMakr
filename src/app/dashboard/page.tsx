@@ -35,7 +35,7 @@ export default async function DashboardPage() {
           height={466}
           priority
           sizes="160px"
-          className="h-24 w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]"
+          className="h-[67px] w-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.65)]"
         />
       </div>
 
