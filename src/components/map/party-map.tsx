@@ -4,7 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, LocateFixed, Users } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -167,6 +167,7 @@ export default function PartyMap({
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const [base, setBase] = useState<"satellite" | "dark">("satellite");
+  const [locating, setLocating] = useState(false);
   const [supabase] = useState(createClient);
   const mapRef = useRef<L.Map | null>(null);
   const loaded = useRef(false);
@@ -214,6 +215,7 @@ export default function PartyMap({
   // Re-locate the user and fly the map to them.
   const recenter = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
@@ -225,8 +227,9 @@ export default function PartyMap({
           map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.6 });
         }
         loadParties(lat, lng);
+        setLocating(false);
       },
-      () => {},
+      () => setLocating(false),
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     );
   }, [loadParties]);
@@ -238,11 +241,10 @@ export default function PartyMap({
       zoomOut: () => mapRef.current?.zoomOut(),
       toggleBase: () =>
         setBase((b) => (b === "satellite" ? "dark" : "satellite")),
-      locate: recenter,
       admin,
     });
     return () => setMapApi(null);
-  }, [recenter, admin]);
+  }, [admin]);
 
   if (!center) {
     return (
@@ -350,6 +352,19 @@ export default function PartyMap({
         })}
       </MapContainer>
 
+      {/* Find-my-location — standalone on the map (other controls live in the
+          pull-up menu). Thumb-reachable, just above the floating tab bar. */}
+      <button
+        type="button"
+        onClick={recenter}
+        aria-label="Find min placering"
+        className="absolute bottom-[calc(var(--nav-height)+0.75rem)] left-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
+      >
+        <LocateFixed
+          size={20}
+          className={locating ? "animate-spin text-amber-300" : ""}
+        />
+      </button>
     </>
   );
 }

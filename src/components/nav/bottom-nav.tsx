@@ -7,7 +7,6 @@ import {
   Bell,
   ChevronUp,
   Layers,
-  LocateFixed,
   LogOut,
   Map,
   Minus,
@@ -263,17 +262,6 @@ export function BottomNav() {
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
                 >
                   <Layers size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    mapApi.locate();
-                    setMenuOpen(false);
-                  }}
-                  aria-label="Find min placering"
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
-                >
-                  <LocateFixed size={18} />
                 </button>
               </div>
             </div>

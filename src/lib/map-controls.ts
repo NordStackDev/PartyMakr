@@ -9,7 +9,6 @@ export type MapApi = {
   zoomIn: () => void;
   zoomOut: () => void;
   toggleBase: () => void;
-  locate: () => void;
   admin: boolean;
 };
 
