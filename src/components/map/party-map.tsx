@@ -4,7 +4,16 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, LocateFixed, Users } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Layers,
+  LocateFixed,
+  Minus,
+  Plus,
+  Shield,
+  Users,
+} from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -12,7 +21,6 @@ import {
   Popup,
   Circle,
   AttributionControl,
-  LayersControl,
 } from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
@@ -155,12 +163,19 @@ function writePos(lat: number, lng: number) {
   }
 }
 
-export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
+export default function PartyMap({
+  radiusKm = 25,
+  admin = false,
+}: {
+  radiusKm?: number;
+  admin?: boolean;
+}) {
   const cached = readPos();
   const [center, setCenter] = useState<[number, number] | null>(cached);
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const [locating, setLocating] = useState(false);
+  const [base, setBase] = useState<"satellite" | "dark">("satellite");
   const [supabase] = useState(createClient);
   const mapRef = useRef<L.Map | null>(null);
   const loaded = useRef(false);
@@ -235,6 +250,9 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
     );
   }
 
+  const ctrl =
+    "flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95";
+
   return (
     <>
       <MapContainer
@@ -242,7 +260,7 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
         zoom={12}
         maxZoom={MAX_ZOOM}
         scrollWheelZoom
-        zoomControl
+        zoomControl={false}
         preferCanvas
         attributionControl={false}
         ref={mapRef}
@@ -250,27 +268,15 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
         style={{ background: "#120d22" }}
       >
         <AttributionControl position="bottomright" prefix={false} />
-        <LayersControl position="bottomleft">
-          <LayersControl.BaseLayer checked name="Satellit">
-            <TileLayer
-              url={TILES.satellite.url}
-              attribution={TILES.satellite.attribution}
-              maxZoom={MAX_ZOOM}
-              keepBuffer={4}
-              updateWhenIdle={false}
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Mørkt">
-            <TileLayer
-              url={TILES.dark.url}
-              attribution={TILES.dark.attribution}
-              subdomains={TILES.dark.subdomains}
-              maxZoom={MAX_ZOOM}
-              keepBuffer={4}
-              updateWhenIdle={false}
-            />
-          </LayersControl.BaseLayer>
-        </LayersControl>
+        <TileLayer
+          key={base}
+          url={TILES[base].url}
+          attribution={TILES[base].attribution}
+          subdomains={TILES[base].subdomains}
+          maxZoom={MAX_ZOOM}
+          keepBuffer={4}
+          updateWhenIdle={false}
+        />
 
         {me ? <Marker position={me} icon={meIcon} interactive={false} /> : null}
 
@@ -345,18 +351,50 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
         })}
       </MapContainer>
 
-      {/* Find-my-location button — thumb-reachable, clears the bottom bar. */}
-      <button
-        type="button"
-        onClick={recenter}
-        aria-label="Find min placering"
-        className="absolute bottom-[calc(var(--nav-height)+2.75rem)] left-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
-      >
-        <LocateFixed
-          size={20}
-          className={locating ? "animate-spin text-amber-300" : ""}
-        />
-      </button>
+      {/* Map controls — one glass column, vertically centred on the left edge. */}
+      <div className="absolute left-3 top-1/2 z-[1000] flex -translate-y-1/2 flex-col gap-2">
+        {admin ? (
+          <Link href="/admin" aria-label="Admin" className={ctrl}>
+            <Shield size={18} />
+          </Link>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => mapRef.current?.zoomIn()}
+          aria-label="Zoom ind"
+          className={ctrl}
+        >
+          <Plus size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={() => mapRef.current?.zoomOut()}
+          aria-label="Zoom ud"
+          className={ctrl}
+        >
+          <Minus size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setBase((b) => (b === "satellite" ? "dark" : "satellite"))}
+          aria-label={base === "satellite" ? "Skift til kort" : "Skift til satellit"}
+          aria-pressed={base === "satellite"}
+          className={ctrl}
+        >
+          <Layers size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={recenter}
+          aria-label="Find min placering"
+          className={ctrl}
+        >
+          <LocateFixed
+            size={20}
+            className={locating ? "animate-spin text-amber-300" : ""}
+          />
+        </button>
+      </div>
     </>
   );
 }

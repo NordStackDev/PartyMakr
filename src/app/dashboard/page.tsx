@@ -1,6 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
-import { Shield } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin/guard";
@@ -25,7 +23,7 @@ export default async function DashboardPage() {
   return (
     <main className="relative flex flex-1 flex-col">
       <div className="absolute inset-0">
-        <MapHome radiusKm={radiusKm} />
+        <MapHome radiusKm={radiusKm} admin={admin} />
       </div>
 
       {/* Logo floats over the map — no background bar */}
@@ -41,15 +39,6 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {admin ? (
-        <Link
-          href="/admin"
-          aria-label="Admin"
-          className="absolute right-4 top-4 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#15102a]/80 text-zinc-100 shadow-lg shadow-black/30 backdrop-blur transition hover:bg-[#15102a]"
-        >
-          <Shield size={16} />
-        </Link>
-      ) : null}
     </main>
   );
 }

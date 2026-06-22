@@ -14,6 +14,12 @@ const PartyMap = dynamic(() => import("./party-map"), {
   ),
 });
 
-export function MapHome({ radiusKm }: { radiusKm: number }) {
-  return <PartyMap radiusKm={radiusKm} />;
+export function MapHome({
+  radiusKm,
+  admin = false,
+}: {
+  radiusKm: number;
+  admin?: boolean;
+}) {
+  return <PartyMap radiusKm={radiusKm} admin={admin} />;
 }

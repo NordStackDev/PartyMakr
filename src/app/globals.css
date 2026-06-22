@@ -198,39 +198,10 @@ label,
   }
 }
 
-/* Full-bleed discovery map: the header and tab bar float over the map with
-   rounded corners, so nudge Leaflet's controls inward to clear them. */
-.pm-fullmap .leaflet-top {
-  top: 2rem;
-}
-
-/* Touch-friendly zoom buttons + dark-glass styling to match the app. */
-.pm-fullmap .leaflet-bar {
-  border: none;
-  border-radius: 0.85rem;
-  overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-}
-.pm-fullmap .leaflet-control-zoom a {
-  width: 2.5rem;
-  height: 2.5rem;
-  line-height: 2.5rem;
-  font-size: 1.35rem;
-  color: #f4f4f5;
-  background: rgba(18, 13, 34, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-.pm-fullmap .leaflet-control-zoom a:hover {
-  background: rgba(27, 21, 48, 0.92);
-}
+/* Full-bleed discovery map: keep the attribution above the floating tab bar.
+   Zoom, layer and locate are custom React glass buttons (see PartyMap). */
 .pm-fullmap .leaflet-bottom {
   bottom: calc(var(--nav-height) + 0.25rem);
-}
-/* Layer switcher sits bottom-left, stacked just above the locate button */
-.pm-fullmap .leaflet-bottom.leaflet-left {
-  bottom: calc(var(--nav-height) + 5.75rem);
 }
 
 /* Party popup — modern dark-glass card instead of the default white bubble. */
@@ -276,36 +247,6 @@ label,
 }
 .pm-fullmap .leaflet-control-attribution a {
   color: rgba(255, 255, 255, 0.7);
-}
-
-/* Layer switcher — dark glass to match the app */
-.pm-fullmap .leaflet-control-layers {
-  border-radius: 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(18, 13, 34, 0.85);
-  color: #f4f4f5;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-.pm-fullmap .leaflet-control-layers-toggle {
-  /* Default icon is dark; invert it so it reads on the dark control */
-  filter: invert(1) brightness(1.6);
-}
-.pm-fullmap .leaflet-control-layers-expanded {
-  padding: 0.6rem 0.75rem;
-}
-.pm-fullmap .leaflet-control-layers label {
-  margin: 0.15rem 0;
-  font-size: 13px;
-  font-weight: 500;
-}
-.pm-fullmap .leaflet-control-layers-selector {
-  accent-color: #fcbe4f;
-  margin-right: 0.4rem;
-}
-.pm-fullmap .leaflet-control-layers-separator {
-  border-top-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Native <select> dropdown options on dark inputs (otherwise light-on-light) */
