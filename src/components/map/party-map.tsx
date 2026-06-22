@@ -249,8 +249,8 @@ export default function PartyMap({ radiusKm = 25 }: { radiusKm?: number }) {
         className="pm-fullmap absolute inset-0"
         style={{ background: "#120d22" }}
       >
-        <AttributionControl position="bottomleft" prefix={false} />
-        <LayersControl position="bottomright">
+        <AttributionControl position="bottomright" prefix={false} />
+        <LayersControl position="bottomleft">
           <LayersControl.BaseLayer checked name="Satellit">
             <TileLayer
               url={TILES.satellite.url}
