@@ -64,16 +64,13 @@ export default async function FriendsPage() {
 
   function Person({ id }: { id: string }) {
     const p = profiles.get(id);
-    const name = p?.display_name || p?.username || "Bruger";
+    const name = p?.username
+      ? `@${p.username}`
+      : p?.display_name || "Bruger uden navn";
     return (
       <div className="flex min-w-0 items-center gap-3">
-        <Avatar url={p?.avatar_url ?? null} name={name} size={40} />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">{name}</p>
-          {p?.username ? (
-            <p className="truncate text-xs text-zinc-400">@{p.username}</p>
-          ) : null}
-        </div>
+        <Avatar url={p?.avatar_url ?? null} name={p?.username} size={40} />
+        <p className="min-w-0 truncate text-sm font-medium text-white">{name}</p>
       </div>
     );
   }
