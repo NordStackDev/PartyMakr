@@ -143,6 +143,24 @@ export function BottomNav() {
     };
   }, []);
 
+  // Re-count unread on every navigation so the badge stays correct even if
+  // Realtime isn't delivering (the bar persists in the layout and never
+  // remounts). RLS scopes the count to the current user.
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+    supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("read", false)
+      .then(({ count }) => {
+        if (active) setUnread(count ?? 0);
+      });
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
   const visible = CONSUMER_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
