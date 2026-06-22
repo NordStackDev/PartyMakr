@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Bell,
   ChevronUp,
+  Layers,
+  LocateFixed,
   LogOut,
   Map,
+  Minus,
   Plus,
+  Shield,
   Ticket,
   User,
   Users,
@@ -17,6 +21,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/auth/actions";
+import { getMapApi, subscribeMapApi } from "@/lib/map-controls";
 
 /** Routes that belong to the consumer app shell — the tab bar shows only here. */
 const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications", "/friends"];
@@ -53,6 +58,8 @@ export function BottomNav() {
   const [prevPath, setPrevPath] = useState(pathname);
   const sheetRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  // Map controls, published by PartyMap only while the discovery map is mounted.
+  const mapApi = useSyncExternalStore(subscribeMapApi, getMapApi, () => null);
 
   // On navigation: clear the messages badge and close the pull-up menu.
   if (pathname !== prevPath) {
@@ -215,6 +222,63 @@ export function BottomNav() {
           }`}
         >
           <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+
+          {/* Map controls — only while the discovery map is on screen */}
+          {mapApi ? (
+            <div className="mb-2 border-b border-white/10 pb-3">
+              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                Kort
+              </p>
+              <div className="flex flex-wrap gap-2 px-1">
+                {mapApi.admin ? (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMenuOpen(false)}
+                    aria-label="Admin"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
+                  >
+                    <Shield size={18} />
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => mapApi.zoomIn()}
+                  aria-label="Zoom ind"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
+                >
+                  <Plus size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mapApi.zoomOut()}
+                  aria-label="Zoom ud"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
+                >
+                  <Minus size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => mapApi.toggleBase()}
+                  aria-label="Skift korttype"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
+                >
+                  <Layers size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    mapApi.locate();
+                    setMenuOpen(false);
+                  }}
+                  aria-label="Find min placering"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-100 transition hover:bg-white/10"
+                >
+                  <LocateFixed size={18} />
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <nav className="flex flex-col gap-0.5">
             {MENU_ITEMS.map((item) => {
               const Icon = item.icon;

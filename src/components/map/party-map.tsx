@@ -4,16 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarDays,
-  Layers,
-  LocateFixed,
-  Minus,
-  Plus,
-  Shield,
-  Users,
-} from "lucide-react";
+import { ArrowRight, CalendarDays, Users } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -24,6 +15,7 @@ import {
 } from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
+import { setMapApi } from "@/lib/map-controls";
 
 type NearbyParty = {
   id: string;
@@ -174,7 +166,6 @@ export default function PartyMap({
   const [center, setCenter] = useState<[number, number] | null>(cached);
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
-  const [locating, setLocating] = useState(false);
   const [base, setBase] = useState<"satellite" | "dark">("satellite");
   const [supabase] = useState(createClient);
   const mapRef = useRef<L.Map | null>(null);
@@ -220,10 +211,9 @@ export default function PartyMap({
     }
   }, [loadParties]);
 
-  // Re-locate the user and fly the map to them (tap target on the map).
+  // Re-locate the user and fly the map to them.
   const recenter = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
-    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const lat = pos.coords.latitude;
@@ -235,12 +225,24 @@ export default function PartyMap({
           map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.6 });
         }
         loadParties(lat, lng);
-        setLocating(false);
       },
-      () => setLocating(false),
+      () => {},
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
     );
   }, [loadParties]);
+
+  // Publish map actions to the pull-up menu (cleared on unmount / leaving map).
+  useEffect(() => {
+    setMapApi({
+      zoomIn: () => mapRef.current?.zoomIn(),
+      zoomOut: () => mapRef.current?.zoomOut(),
+      toggleBase: () =>
+        setBase((b) => (b === "satellite" ? "dark" : "satellite")),
+      locate: recenter,
+      admin,
+    });
+    return () => setMapApi(null);
+  }, [recenter, admin]);
 
   if (!center) {
     return (
@@ -249,9 +251,6 @@ export default function PartyMap({
       </div>
     );
   }
-
-  const ctrl =
-    "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95";
 
   return (
     <>
@@ -351,50 +350,6 @@ export default function PartyMap({
         })}
       </MapContainer>
 
-      {/* Map controls — a small glass row just above the floating tab bar. */}
-      <div className="absolute bottom-[calc(var(--nav-height)+0.6rem)] left-10 z-[1000] flex flex-row gap-2">
-        {admin ? (
-          <Link href="/admin" aria-label="Admin" className={ctrl}>
-            <Shield size={16} />
-          </Link>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => mapRef.current?.zoomIn()}
-          aria-label="Zoom ind"
-          className={ctrl}
-        >
-          <Plus size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => mapRef.current?.zoomOut()}
-          aria-label="Zoom ud"
-          className={ctrl}
-        >
-          <Minus size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setBase((b) => (b === "satellite" ? "dark" : "satellite"))}
-          aria-label={base === "satellite" ? "Skift til kort" : "Skift til satellit"}
-          aria-pressed={base === "satellite"}
-          className={ctrl}
-        >
-          <Layers size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={recenter}
-          aria-label="Find min placering"
-          className={ctrl}
-        >
-          <LocateFixed
-            size={18}
-            className={locating ? "animate-spin text-amber-300" : ""}
-          />
-        </button>
-      </div>
     </>
   );
 }
