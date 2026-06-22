@@ -24,7 +24,11 @@ export function Loader({
             width={76}
             height={76}
             priority
-            style={{ animation: "pm-pulse 1.6s ease-in-out infinite" }}
+            style={{
+              width: 76,
+              height: 76,
+              animation: "pm-pulse 1.6s ease-in-out infinite",
+            }}
           />
         </div>
       ) : (

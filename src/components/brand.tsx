@@ -22,6 +22,7 @@ export function Brand({
         width={w}
         height={h}
         priority
+        style={{ width: w, height: "auto" }}
         className="drop-shadow-[0_0_28px_rgba(252,190,79,0.25)]"
       />
       {tagline ? (
