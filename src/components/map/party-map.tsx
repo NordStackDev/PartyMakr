@@ -358,7 +358,7 @@ export default function PartyMap({
         type="button"
         onClick={recenter}
         aria-label="Find min placering"
-        className="absolute bottom-[calc(var(--nav-height)+0.75rem)] left-3 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
+        className="absolute bottom-[calc(var(--nav-height)+0.75rem)] left-10 z-[1000] flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#120d22]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
       >
         <LocateFixed
           size={20}
