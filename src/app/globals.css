@@ -228,9 +228,9 @@ label,
 .pm-fullmap .leaflet-bottom {
   bottom: calc(var(--nav-height) + 0.25rem);
 }
-/* Lift the layer switcher (bottom-right) a bit higher than the attribution */
+/* Lift the layer switcher (bottom-right) well above the floating bar */
 .pm-fullmap .leaflet-bottom.leaflet-right {
-  bottom: calc(var(--nav-height) + 2.5rem);
+  bottom: calc(var(--nav-height) + 4.5rem);
 }
 
 /* Party popup — modern dark-glass card instead of the default white bubble. */
