@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Mail, PartyPopper, Bell } from "lucide-react";
+import { Mail, PartyPopper, Bell, UserPlus } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { MarkRead } from "@/components/notifications/mark-read";
@@ -22,7 +22,7 @@ type Notification = {
   created_at: string;
 };
 
-const ICON = { invite: Mail, rsvp: PartyPopper } as const;
+const ICON = { invite: Mail, rsvp: PartyPopper, friend: UserPlus } as const;
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -80,13 +80,14 @@ export default async function NotificationsPage() {
               </div>
             </div>
           );
+          const href = n.party_id
+            ? `/parties/${n.party_id}`
+            : n.type === "friend"
+              ? "/friends"
+              : null;
           return (
             <li key={n.id}>
-              {n.party_id ? (
-                <Link href={`/parties/${n.party_id}`}>{inner}</Link>
-              ) : (
-                inner
-              )}
+              {href ? <Link href={href}>{inner}</Link> : inner}
             </li>
           );
         })}
