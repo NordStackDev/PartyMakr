@@ -352,7 +352,7 @@ export default function PartyMap({
       </MapContainer>
 
       {/* Map controls — a small glass row just above the floating tab bar. */}
-      <div className="absolute bottom-[calc(var(--nav-height)+0.6rem)] left-3 z-[1000] flex flex-row gap-2">
+      <div className="absolute bottom-[calc(var(--nav-height)+0.6rem)] left-10 z-[1000] flex flex-row gap-2">
         {admin ? (
           <Link href="/admin" aria-label="Admin" className={ctrl}>
             <Shield size={16} />
