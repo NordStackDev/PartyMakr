@@ -1,10 +1,5 @@
 import Image from "next/image";
 
-/**
- * Custom neon ring loader. With `withLogo`, the brand mark sits inside the
- * spinning ring (used for full-page/route loading states); otherwise it's a
- * plain ring for inline spots.
- */
 export function Loader({
   label,
   withLogo = false,

@@ -146,15 +146,15 @@ export function BottomNav() {
   return (
     <>
       <nav className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[1000] rounded-[1.75rem] border border-white/12 bg-[#120d22]/55 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/5 backdrop-blur-2xl">
-        {/* Pull-up handle — a small glass nub on the pill's top edge */}
+        {/* Pull-up handle — a round glass button on the pill's top edge */}
         <button
           type="button"
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-3.5 right-6 flex h-5 w-11 items-end justify-center rounded-t-2xl border border-b-0 border-white/12 bg-[#120d22]/70 pb-0.5 text-zinc-300 backdrop-blur-2xl transition before:absolute before:-inset-x-3 before:-top-3 before:bottom-0 before:content-[''] hover:text-white"
+          className="absolute -top-5 right-4 flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-[#120d22]/70 text-zinc-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl transition before:absolute before:-inset-2 before:content-[''] hover:text-white"
         >
-          <ChevronUp size={15} strokeWidth={2.4} />
+          <ChevronUp size={17} strokeWidth={2.4} />
         </button>
 
         <div className="relative flex items-stretch justify-around px-2">
@@ -173,7 +173,7 @@ export function BottomNav() {
             aria-label="Opret fest"
             className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-md shadow-amber-500/30 transition active:brightness-95">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FCBE4F] text-zinc-950 shadow-md shadow-amber-500/30 ring-1 ring-inset ring-white/20 [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.35),0_4px_10px_rgba(245,158,11,0.3)] transition active:brightness-95">
               <Plus size={22} strokeWidth={2.6} />
             </span>
             <span className="text-[10px] font-semibold text-amber-300">Opret</span>
@@ -270,17 +270,17 @@ function TabLink({
       aria-current={active ? "page" : undefined}
       className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1 py-2"
     >
-      {/* Active tab = frosted glass pill behind the icon */}
+      {/* Every icon sits in a frosted glass circle; active is brighter + gold */}
       <span
-        className={`relative flex h-8 w-12 items-center justify-center rounded-full transition ${
+        className={`relative flex h-9 w-9 items-center justify-center rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] ring-1 ring-inset transition ${
           active
-            ? "bg-white/12 text-[#FCBE4F] ring-1 ring-inset ring-white/10"
-            : "text-zinc-400"
+            ? "bg-white/[0.14] text-[#FCBE4F] ring-white/15"
+            : "bg-white/[0.06] text-zinc-300 ring-white/10"
         }`}
       >
-        <Icon size={20} strokeWidth={active ? 2.4 : 2} />
+        <Icon size={19} strokeWidth={active ? 2.4 : 2} />
         {badge > 0 ? (
-          <span className="absolute right-1 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
             {badge > 9 ? "9+" : badge}
           </span>
         ) : null}
