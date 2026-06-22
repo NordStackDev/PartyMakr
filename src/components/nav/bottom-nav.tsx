@@ -39,7 +39,6 @@ const TABS: Tab[] = [
 /** Extra destinations surfaced in the pull-up menu (beyond the core tabs). */
 const MENU_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/friends", label: "Venner", icon: Users },
-  { href: "/settings", label: "Profil & indstillinger", icon: User },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {
