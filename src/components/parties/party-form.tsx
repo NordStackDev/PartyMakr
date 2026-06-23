@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useActionState, useState } from "react";
 
-import { createParty, type CreatePartyState } from "@/lib/parties/actions";
+import { type CreatePartyState } from "@/lib/parties/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { DateTimeField } from "@/components/parties/datetime-field";
 
@@ -19,10 +19,44 @@ const LocationPicker = dynamic(
   },
 );
 
-export function CreatePartyForm() {
-  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
+export type PartyDefaults = {
+  title?: string | null;
+  description?: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  visibility?: "public" | "private" | null;
+  capacity?: number | null;
+};
+
+/**
+ * Shared create/edit party form. The action returns a {error} state (no
+ * navigation) so the user's input is kept on a validation error; only success
+ * navigates. `defaults` prefills the fields for editing.
+ */
+export function PartyForm({
+  action,
+  defaults,
+  submitLabel,
+  pendingLabel,
+}: {
+  action: (
+    state: CreatePartyState,
+    formData: FormData,
+  ) => Promise<CreatePartyState>;
+  defaults?: PartyDefaults;
+  submitLabel: string;
+  pendingLabel: string;
+}) {
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(
+    defaults?.lat != null && defaults?.lng != null
+      ? { lat: defaults.lat, lng: defaults.lng }
+      : null,
+  );
   const [state, formAction] = useActionState<CreatePartyState, FormData>(
-    createParty,
+    action,
     {},
   );
 
@@ -44,12 +78,23 @@ export function CreatePartyForm() {
 
       <label className="block">
         <span className="auth-label">Titel</span>
-        <input name="title" required maxLength={120} className="auth-input" />
+        <input
+          name="title"
+          required
+          maxLength={120}
+          defaultValue={defaults?.title ?? ""}
+          className="auth-input"
+        />
       </label>
 
       <label className="block">
         <span className="auth-label">Beskrivelse</span>
-        <textarea name="description" rows={3} className="auth-input resize-none" />
+        <textarea
+          name="description"
+          rows={3}
+          defaultValue={defaults?.description ?? ""}
+          className="auth-input resize-none"
+        />
       </label>
 
       <div>
@@ -78,24 +123,32 @@ export function CreatePartyForm() {
 
       <label className="block">
         <span className="auth-label">Adresse (valgfri)</span>
-        <input name="address" className="auth-input" />
+        <input
+          name="address"
+          defaultValue={defaults?.address ?? ""}
+          className="auth-input"
+        />
       </label>
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
           <span className="auth-label">Starter</span>
-          <DateTimeField name="starts_at" />
+          <DateTimeField name="starts_at" defaultValue={defaults?.startsAt ?? undefined} />
         </label>
         <label className="block">
           <span className="auth-label">Slutter (valgfri)</span>
-          <DateTimeField name="ends_at" />
+          <DateTimeField name="ends_at" defaultValue={defaults?.endsAt ?? undefined} />
         </label>
       </div>
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
           <span className="auth-label">Synlighed</span>
-          <select name="visibility" defaultValue="public" className="auth-input">
+          <select
+            name="visibility"
+            defaultValue={defaults?.visibility ?? "public"}
+            className="auth-input"
+          >
             <option value="public">Offentlig</option>
             <option value="private">Privat</option>
           </select>
@@ -108,13 +161,14 @@ export function CreatePartyForm() {
             min={1}
             inputMode="numeric"
             placeholder="Ubegrænset"
+            defaultValue={defaults?.capacity ?? ""}
             className="auth-input"
           />
         </label>
       </div>
 
-      <SubmitButton className="btn-primary" pendingText="Opretter…">
-        Opret fest
+      <SubmitButton className="btn-primary" pendingText={pendingLabel}>
+        {submitLabel}
       </SubmitButton>
     </form>
   );

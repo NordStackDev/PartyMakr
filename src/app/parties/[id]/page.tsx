@@ -127,9 +127,14 @@ export default async function PartyDetailPage({
 
       <div className="mt-5">
         {isHost ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
-            Du er vært for denne fest.
-          </p>
+          <div className="space-y-3">
+            <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
+              Du er vært for denne fest.
+            </p>
+            <Link href={`/parties/${party.id}/edit`} className="btn-ghost">
+              Rediger fest
+            </Link>
+          </div>
         ) : (
           <>
             <p className="auth-label mb-2">Tag med?</p>

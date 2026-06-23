@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { CreatePartyForm } from "@/components/parties/create-party-form";
+import { createParty } from "@/lib/parties/actions";
+import { PartyForm } from "@/components/parties/party-form";
 
 export default async function NewPartyPage() {
   const supabase = await createClient();
@@ -23,7 +24,11 @@ export default async function NewPartyPage() {
         Opret en fest
       </h1>
       <div className="mt-5">
-        <CreatePartyForm />
+        <PartyForm
+          action={createParty}
+          submitLabel="Opret fest"
+          pendingLabel="Opretter…"
+        />
       </div>
     </main>
   );
