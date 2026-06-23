@@ -4,20 +4,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreatePartyForm } from "@/components/parties/create-party-form";
 
-type SearchParams = Promise<{ error?: string }>;
-
-export default async function NewPartyPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function NewPartyPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-
-  const { error } = await searchParams;
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
@@ -31,7 +23,7 @@ export default async function NewPartyPage({
         Opret en fest
       </h1>
       <div className="mt-5">
-        <CreatePartyForm error={error} />
+        <CreatePartyForm />
       </div>
     </main>
   );

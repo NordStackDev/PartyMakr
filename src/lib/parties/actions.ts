@@ -12,11 +12,20 @@ function str(formData: FormData, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
+export type CreatePartyState = { error?: string };
+
 /**
  * Create a party. Location comes from the map picker (lat/lng). Inserts via the
  * create_party RPC (handles the geography column); RLS enforces host = self.
+ *
+ * Uses the useActionState signature so validation errors are RETURNED (no
+ * navigation) — the form stays mounted and keeps everything the user typed.
+ * Only success navigates (to the new party).
  */
-export async function createParty(formData: FormData) {
+export async function createParty(
+  _prevState: CreatePartyState,
+  formData: FormData,
+): Promise<CreatePartyState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,19 +39,11 @@ export async function createParty(formData: FormData) {
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
 
-  if (!title) {
-    redirect("/parties/new?error=" + encodeURIComponent("Giv festen en titel."));
-  }
+  if (!title) return { error: "Giv festen en titel." };
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    redirect(
-      "/parties/new?error=" + encodeURIComponent("Vælg en placering på kortet."),
-    );
+    return { error: "Vælg en placering på kortet." };
   }
-  if (!startsAt) {
-    redirect(
-      "/parties/new?error=" + encodeURIComponent("Vælg hvornår festen starter."),
-    );
-  }
+  if (!startsAt) return { error: "Vælg hvornår festen starter." };
 
   const capacityRaw = str(formData, "capacity").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
@@ -61,14 +62,11 @@ export async function createParty(formData: FormData) {
   });
 
   if (error || !data) {
-    redirect(
-      "/parties/new?error=" +
-        encodeURIComponent(
-          error?.message
-            ? `Kunne ikke oprette festen: ${error.message}`
-            : "Kunne ikke oprette festen.",
-        ),
-    );
+    return {
+      error: error?.message
+        ? `Kunne ikke oprette festen: ${error.message}`
+        : "Kunne ikke oprette festen.",
+    };
   }
 
   revalidatePath("/dashboard");
