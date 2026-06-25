@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Pencil } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,29 +49,37 @@ export default async function MyPartiesPage() {
 
       <ul className="mt-5 space-y-2">
         {parties.map((p) => (
-          <li key={p.id}>
+          <li
+            key={p.id}
+            className="glass-card flex items-center gap-2 rounded-2xl transition hover:bg-white/[0.07]"
+          >
             <Link
               href={`/parties/${p.id}`}
-              className="glass-card flex items-center justify-between gap-3 rounded-2xl p-4 transition hover:bg-white/[0.07]"
+              className="min-w-0 flex-1 p-4"
             >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {p.title}
-                  <span
-                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                      p.visibility === "public"
-                        ? "bg-amber-400/15 text-amber-300"
-                        : "bg-zinc-500/20 text-zinc-300"
-                    }`}
-                  >
-                    {p.visibility === "public" ? "Offentlig" : "Privat"}
-                  </span>
-                </p>
-                <p className="mt-0.5 text-xs text-zinc-400">
-                  Starter {fmt(p.starts_at)}
-                </p>
-              </div>
-              <span className="shrink-0 text-zinc-400">→</span>
+              <p className="truncate text-sm font-medium text-white">
+                {p.title}
+                <span
+                  className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                    p.visibility === "public"
+                      ? "bg-amber-400/15 text-amber-300"
+                      : "bg-zinc-500/20 text-zinc-300"
+                  }`}
+                >
+                  {p.visibility === "public" ? "Offentlig" : "Privat"}
+                </span>
+              </p>
+              <p className="mt-0.5 text-xs text-zinc-400">
+                Starter {fmt(p.starts_at)}
+              </p>
+            </Link>
+            <Link
+              href={`/parties/${p.id}/edit`}
+              aria-label="Rediger fest"
+              className="mr-3 flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-white/10"
+            >
+              <Pencil size={14} />
+              Rediger
             </Link>
           </li>
         ))}

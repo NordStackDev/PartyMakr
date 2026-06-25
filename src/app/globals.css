@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0510;
+  --background: #0b0805;
   --foreground: #ededed;
 
   /* Brand + surface design tokens (single source of truth) */
-  --base: #120d22;
-  --surface: #15102a;
-  --surface-2: #1b1530;
+  --base: #14100b;
+  --surface: #1c1610;
+  --surface-2: #241d15;
   --brand: #fcbe4f;
   --brand-hover: #fdca6b;
   --accent: #63bfcb;
@@ -57,7 +57,7 @@ html,
 body {
   /* Match the club base so the notch / safe-area / overscroll never flashes
      white on mobile. */
-  background-color: #120d22;
+  background-color: #14100b;
 }
 
 body {
@@ -287,7 +287,7 @@ label,
 .react-datepicker__day--keyboard-selected,
 .react-datepicker__time-list-item--selected {
   background-color: #fcbe4f !important;
-  color: #120d22 !important;
+  color: #14100b !important;
   font-weight: 600;
 }
 .react-datepicker__day--today {
@@ -320,13 +320,13 @@ label,
   height: 26px;
   border-radius: 9999px;
   background: #fcbe4f;
-  border: 3px solid #120d22;
+  border: 3px solid #14100b;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .pm-range::-moz-range-thumb {
   width: 26px;
   height: 26px;
-  border: 3px solid #120d22;
+  border: 3px solid #14100b;
   border-radius: 9999px;
   background: #fcbe4f;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);

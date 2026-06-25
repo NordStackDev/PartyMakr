@@ -112,7 +112,7 @@ brand classes live in `src/app/globals.css`.
 | Gold — light | `#FDE3A7` | Gradient start (wordmark, charts, logo) |
 | Gold — deep | `#E8972E` | Gradient end |
 | **Teal — contrast** | `#63bfcb` | Secondary accent: aurora/glow, the "me" map marker |
-| Base / background | `#120d22` | App background, safe areas, glass base |
+| Base / background | `#14100b` | App background, safe areas, glass base (warm near-black) |
 | Glass | `white 4%` fill, `white 10%` border | Frosted cards (`.glass-card`) |
 
 ### Text hierarchy (Tailwind `zinc`)

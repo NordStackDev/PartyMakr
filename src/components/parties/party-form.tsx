@@ -28,6 +28,7 @@ export type PartyDefaults = {
   startsAt?: string | null;
   endsAt?: string | null;
   visibility?: "public" | "private" | null;
+  venueType?: "own_place" | "public_spot" | null;
   capacity?: number | null;
 };
 
@@ -83,8 +84,13 @@ export function PartyForm({
           required
           maxLength={120}
           defaultValue={defaults?.title ?? ""}
-          className="auth-input"
+          className={`auth-input ${state.fieldErrors?.title ? "border-red-400/60" : ""}`}
         />
+        {state.fieldErrors?.title ? (
+          <span className="mt-1 block text-sm text-red-300">
+            {state.fieldErrors.title}
+          </span>
+        ) : null}
       </label>
 
       <label className="block">
@@ -99,7 +105,9 @@ export function PartyForm({
 
       <div>
         <span className="auth-label">Placering</span>
-        <div className="mt-1 h-[clamp(11rem,38vh,16rem)] overflow-hidden rounded-xl border border-white/10">
+        <div
+          className={`mt-1 h-[clamp(11rem,38vh,16rem)] overflow-hidden rounded-xl border ${state.fieldErrors?.location ? "border-red-400/60" : "border-white/10"}`}
+        >
           <LocationPicker
             value={loc}
             onPick={(lat, lng) => setLoc({ lat, lng })}
@@ -117,6 +125,11 @@ export function PartyForm({
             {loc ? "Placering valgt ✓" : "Tryk på kortet for at vælge"}
           </span>
         </div>
+        {state.fieldErrors?.location ? (
+          <span className="mt-1 block text-sm text-red-300">
+            {state.fieldErrors.location}
+          </span>
+        ) : null}
         <input type="hidden" name="lat" value={loc?.lat ?? ""} />
         <input type="hidden" name="lng" value={loc?.lng ?? ""} />
       </div>
@@ -134,12 +147,29 @@ export function PartyForm({
         <label className="block">
           <span className="auth-label">Starter</span>
           <DateTimeField name="starts_at" defaultValue={defaults?.startsAt ?? undefined} />
+          {state.fieldErrors?.starts_at ? (
+            <span className="mt-1 block text-sm text-red-300">
+              {state.fieldErrors.starts_at}
+            </span>
+          ) : null}
         </label>
         <label className="block">
           <span className="auth-label">Slutter (valgfri)</span>
           <DateTimeField name="ends_at" defaultValue={defaults?.endsAt ?? undefined} />
         </label>
       </div>
+
+      <label className="block">
+        <span className="auth-label">Hvor er festen?</span>
+        <select
+          name="venue_type"
+          defaultValue={defaults?.venueType ?? "own_place"}
+          className="auth-input"
+        >
+          <option value="own_place">Eget sted</option>
+          <option value="public_spot">Mødes i byen</option>
+        </select>
+      </label>
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">

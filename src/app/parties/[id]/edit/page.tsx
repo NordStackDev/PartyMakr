@@ -15,6 +15,7 @@ type Party = {
   starts_at: string;
   ends_at: string | null;
   visibility: "public" | "private";
+  venue_type: "own_place" | "public_spot";
   capacity: number | null;
   lon: number;
   lat: number;
@@ -58,6 +59,7 @@ export default async function EditPartyPage({
             startsAt: party.starts_at,
             endsAt: party.ends_at,
             visibility: party.visibility,
+            venueType: party.venue_type,
             capacity: party.capacity,
           }}
           submitLabel="Gem ændringer"

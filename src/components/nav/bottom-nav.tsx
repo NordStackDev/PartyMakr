@@ -168,7 +168,7 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[1000] rounded-[1.75rem] border border-white/12 bg-[#120d22]/55 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/5 backdrop-blur-2xl">
+      <nav className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[1000] rounded-[1.75rem] border border-white/12 bg-[#14100b]/55 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/5 backdrop-blur-2xl">
         {/* Pull-up handle — a flat glass grabber above the bar (distinct from
             the round tab icons so it never reads as a duplicate). */}
         <button
@@ -176,7 +176,7 @@ export function BottomNav() {
           aria-label="Åbn menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="absolute -top-7 right-4 flex h-6 w-12 items-center justify-center rounded-full border border-white/12 bg-[#120d22]/75 text-zinc-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl transition before:absolute before:-inset-2 before:content-[''] hover:text-white"
+          className="absolute -top-7 right-4 flex h-6 w-12 items-center justify-center rounded-full border border-white/12 bg-[#14100b]/75 text-zinc-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl transition before:absolute before:-inset-2 before:content-[''] hover:text-white"
         >
           <ChevronUp size={16} strokeWidth={2.4} />
         </button>

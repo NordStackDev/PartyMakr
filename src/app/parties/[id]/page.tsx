@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { Calendar, Clock, MapPin, Users } from "lucide-react";
+import { Calendar, Clock, Home, MapPin, Navigation, Pencil, Users } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { MiniMap } from "@/components/map/mini-map";
@@ -24,6 +24,7 @@ type Party = {
   starts_at: string;
   ends_at: string | null;
   visibility: "public" | "private";
+  venue_type: "own_place" | "public_spot";
   capacity: number | null;
   lon: number;
   lat: number;
@@ -108,6 +109,14 @@ export default async function PartyDetailPage({
             <span className="min-w-0 break-words">{party.address}</span>
           </p>
         ) : null}
+        <p className="flex items-center gap-2 text-zinc-200">
+          {party.venue_type === "public_spot" ? (
+            <Navigation size={16} className="shrink-0 text-amber-300" />
+          ) : (
+            <Home size={16} className="shrink-0 text-amber-300" />
+          )}
+          {party.venue_type === "public_spot" ? "Mødes i byen" : "Eget sted"}
+        </p>
         <p className="flex items-center gap-2 text-zinc-400">
           <Users size={16} className="shrink-0 text-zinc-400" />
           {goingCount} kommer
@@ -131,7 +140,11 @@ export default async function PartyDetailPage({
             <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
               Du er vært for denne fest.
             </p>
-            <Link href={`/parties/${party.id}/edit`} className="btn-ghost">
+            <Link
+              href={`/parties/${party.id}/edit`}
+              className="btn-primary flex items-center justify-center gap-2"
+            >
+              <Pencil size={16} />
               Rediger fest
             </Link>
           </div>

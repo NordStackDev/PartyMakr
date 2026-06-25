@@ -12,7 +12,24 @@ function str(formData: FormData, key: string): string {
   return typeof v === "string" ? v : "";
 }
 
-export type CreatePartyState = { error?: string };
+export type PartyFieldErrors = {
+  title?: string;
+  location?: string;
+  starts_at?: string;
+};
+
+export type CreatePartyState = {
+  /** General/RPC error, shown as a banner. */
+  error?: string;
+  /** Per-field validation messages, shown inline under each field. */
+  fieldErrors?: PartyFieldErrors;
+};
+
+function venueType(formData: FormData): "own_place" | "public_spot" {
+  return str(formData, "venue_type") === "public_spot"
+    ? "public_spot"
+    : "own_place";
+}
 
 /**
  * Create a party. Location comes from the map picker (lat/lng). Inserts via the
@@ -39,11 +56,13 @@ export async function createParty(
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
 
-  if (!title) return { error: "Giv festen en titel." };
+  const fieldErrors: PartyFieldErrors = {};
+  if (!title) fieldErrors.title = "Giv festen en titel.";
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return { error: "Vælg en placering på kortet." };
+    fieldErrors.location = "Vælg en placering på kortet.";
   }
-  if (!startsAt) return { error: "Vælg hvornår festen starter." };
+  if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const capacityRaw = str(formData, "capacity").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
@@ -58,6 +77,7 @@ export async function createParty(
     p_ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
     p_visibility:
       str(formData, "visibility") === "private" ? "private" : "public",
+    p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
   });
 
@@ -96,11 +116,13 @@ export async function updateParty(
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
 
-  if (!title) return { error: "Giv festen en titel." };
+  const fieldErrors: PartyFieldErrors = {};
+  if (!title) fieldErrors.title = "Giv festen en titel.";
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return { error: "Vælg en placering på kortet." };
+    fieldErrors.location = "Vælg en placering på kortet.";
   }
-  if (!startsAt) return { error: "Vælg hvornår festen starter." };
+  if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const capacityRaw = str(formData, "capacity").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
@@ -116,6 +138,7 @@ export async function updateParty(
     p_ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
     p_visibility:
       str(formData, "visibility") === "private" ? "private" : "public",
+    p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
   });
 
