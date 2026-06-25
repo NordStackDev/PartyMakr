@@ -262,23 +262,27 @@ label,
      portal 100vw/100vh, which overflows the card and centres the calendar
      outside the card's overflow-hidden clip — leaving only the dark backdrop
      visible ("bare sort"). Fill the card instead so the calendar is centred
-     inside the visible frame. */
-  inset: 0;
-  width: 100%;
-  height: 100%;
+     inside the visible frame. !important because the library stylesheet is
+     imported in the component and loads after this file (same specificity). */
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   background-color: rgba(0, 0, 0, 0.6);
 }
+/* !important throughout: the library stylesheet is imported in the component
+   and loads after globals.css, so these same-specificity overrides would
+   otherwise lose to the library's default light theme. */
 .react-datepicker {
-  background-color: #241d15;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: #241d15 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 0.9rem;
-  color: #f4f4f5;
+  color: #f4f4f5 !important;
   font-family: inherit;
 }
 .react-datepicker__header,
 .react-datepicker__time-container .react-datepicker__time {
-  background-color: #1c1610;
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: #1c1610 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 .react-datepicker__current-month,
 .react-datepicker-time__header,
@@ -286,7 +290,7 @@ label,
 .react-datepicker__day,
 .react-datepicker__time-name,
 .react-datepicker__time-list-item {
-  color: #f4f4f5;
+  color: #f4f4f5 !important;
 }
 .react-datepicker__day:hover,
 .react-datepicker__time-list-item:hover {
