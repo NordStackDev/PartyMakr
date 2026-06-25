@@ -22,7 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/auth/actions";
 import { getMapApi, subscribeMapApi } from "@/lib/map-controls";
-import { requestOpenHelp } from "@/lib/help-controls";
+import { requestOpenHelp, subscribeHelpOpened } from "@/lib/help-controls";
 
 /** Routes that belong to the consumer app shell — the tab bar shows only here. */
 const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications", "/friends"];
@@ -68,6 +68,10 @@ export function BottomNav() {
     if (pathname.startsWith("/notifications") && unread !== 0) setUnread(0);
     if (menuOpen) setMenuOpen(false);
   }
+
+  // Close the pull-up menu whenever the help guide opens (incl. the async
+  // first-time auto-open) so the two sheets never stack.
+  useEffect(() => subscribeHelpOpened(() => setMenuOpen(false)), []);
 
   // Accessible bottom sheet: trap Tab, close on Escape, focus the first item on
   // open and restore focus to the trigger on close.

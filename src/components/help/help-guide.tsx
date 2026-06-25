@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { markOnboarded } from "@/lib/profile/actions";
-import { subscribeOpenHelp } from "@/lib/help-controls";
+import { helpOpened, subscribeOpenHelp } from "@/lib/help-controls";
 
 type Step = { title: string; desc: string };
 
@@ -56,6 +56,13 @@ export function HelpGuide() {
   // closing then records that the user has seen it.
   const pendingOnboard = useRef(false);
 
+  // Open the guide and tell the bottom-nav to close its pull-up menu (so they
+  // don't stack). Used by both the auto-open and the "Hjælp" button.
+  const openGuide = useCallback(() => {
+    setOpen(true);
+    helpOpened();
+  }, []);
+
   // Auto-open once for first-time users (persisted on the profile).
   useEffect(() => {
     const supabase = createClient();
@@ -72,16 +79,16 @@ export function HelpGuide() {
         .maybeSingle();
       if (active && data && data.onboarded_at == null) {
         pendingOnboard.current = true;
-        setOpen(true);
+        openGuide();
       }
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [openGuide]);
 
   // Open on demand from the "Hjælp" menu button.
-  useEffect(() => subscribeOpenHelp(() => setOpen(true)), []);
+  useEffect(() => subscribeOpenHelp(openGuide), [openGuide]);
 
   // Focus the close button on open; close on Escape.
   useEffect(() => {
