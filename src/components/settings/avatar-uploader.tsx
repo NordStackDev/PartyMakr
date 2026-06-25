@@ -131,7 +131,7 @@ export function AvatarUploader({
               onClick={() => setMenuOpen(false)}
               className="fixed inset-0 z-10 cursor-default"
             />
-            <div className="absolute left-1/2 z-20 mt-2 w-44 -translate-x-1/2 overflow-hidden rounded-xl border border-white/10 bg-[#1b1530] shadow-xl">
+            <div className="absolute left-1/2 z-20 mt-2 w-44 -translate-x-1/2 overflow-hidden rounded-xl border border-white/10 bg-[#241d15] shadow-xl">
               <button
                 type="button"
                 onClick={() => {

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   Bell,
   ChevronUp,
+  HelpCircle,
   Layers,
   LogOut,
   Map,
@@ -21,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/auth/actions";
 import { getMapApi, subscribeMapApi } from "@/lib/map-controls";
+import { requestOpenHelp } from "@/lib/help-controls";
 
 /** Routes that belong to the consumer app shell — the tab bar shows only here. */
 const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications", "/friends"];
@@ -234,7 +236,7 @@ export function BottomNav() {
           role="dialog"
           aria-modal="true"
           aria-label="Menu"
-          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/12 bg-[#15102a]/85 p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out ${
+          className={`absolute inset-x-0 bottom-0 rounded-t-3xl border-t border-white/12 bg-[#1c1610]/85 p-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out ${
             menuOpen ? "translate-y-0" : "translate-y-full"
           }`}
         >
@@ -306,6 +308,18 @@ export function BottomNav() {
                 </Link>
               );
             })}
+
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                requestOpenHelp();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-200 transition hover:bg-white/5"
+            >
+              <HelpCircle size={20} />
+              Hjælp
+            </button>
 
             <form action={signOut} className="mt-1 border-t border-white/10 pt-1">
               <button

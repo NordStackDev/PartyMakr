@@ -44,6 +44,25 @@ export async function updateSettings(formData: FormData) {
   redirect("/settings?saved=1");
 }
 
+/**
+ * Mark the first-time help guide as seen so it won't auto-open again. Called
+ * when the user closes the guide the first time. No redirect/revalidate — it's
+ * a fire-and-forget background write from the client.
+ */
+export async function markOnboarded() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase
+    .from("profiles")
+    .update({ onboarded_at: new Date().toISOString() })
+    .eq("id", user.id)
+    .is("onboarded_at", null);
+}
+
 /** Persist a new avatar URL (file already uploaded to storage client-side). */
 export async function updateAvatar(url: string) {
   const supabase = await createClient();
