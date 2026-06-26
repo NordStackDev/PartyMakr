@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -50,6 +57,16 @@ const HOST_STEPS: Step[] = [
 export function HelpGuide() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<"guest" | "host">("guest");
+  // Render the overlay into <body> (not the phone-frame card) so it escapes the
+  // card's backdrop-filter containing block and the map's stacking contexts —
+  // otherwise the sheet renders below the nav instead of covering the frame.
+  // useSyncExternalStore gives false during SSR and true once on the client,
+  // without a setState-in-effect (which the lint rules disallow).
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const cardRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   // True while the guide is being shown for the first time (onboarded_at null);
@@ -111,7 +128,9 @@ export function HelpGuide() {
 
   const steps = role === "guest" ? GUEST_STEPS : HOST_STEPS;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       aria-hidden={!open}
       className={`fixed inset-0 z-[1200] ${open ? "" : "pointer-events-none"}`}
@@ -130,7 +149,7 @@ export function HelpGuide() {
         role="dialog"
         aria-modal="true"
         aria-label="Sådan bruger du PartyMakr"
-        className={`absolute inset-x-0 bottom-0 max-h-[88%] overflow-y-auto rounded-t-3xl border-t border-white/12 bg-[#1c1610]/95 p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out ${
+        className={`absolute inset-x-0 bottom-0 mx-auto max-h-[88%] max-w-[480px] overflow-y-auto rounded-t-3xl border-t border-white/12 bg-[#1c1610]/95 p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl backdrop-blur-2xl transition-transform duration-300 ease-out ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -208,6 +227,7 @@ export function HelpGuide() {
           Forstået, lad os feste!
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
