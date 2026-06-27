@@ -131,14 +131,15 @@ function fuzzedCenter(lat: number, lon: number, id: string): [number, number] {
   return [lat + dLat, lon + dLon];
 }
 
-// Remember the last known position across navigations so the map appears
-// instantly instead of re-running geolocation from scratch every time.
+// Remember the last known position across visits so the map opens at the user's
+// real location instead of the Copenhagen fallback. localStorage (not session)
+// so it survives full reloads, new tabs and reopening the PWA.
 const POS_KEY = "pm_last_pos";
 
 function readPos(): [number, number] | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(POS_KEY);
+    const raw = localStorage.getItem(POS_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as { lat: number; lng: number };
     return [p.lat, p.lng];
@@ -149,7 +150,7 @@ function readPos(): [number, number] | null {
 
 function writePos(lat: number, lng: number) {
   try {
-    sessionStorage.setItem(POS_KEY, JSON.stringify({ lat, lng }));
+    localStorage.setItem(POS_KEY, JSON.stringify({ lat, lng }));
   } catch {
     /* ignore */
   }
@@ -190,25 +191,55 @@ export default function PartyMap({
     loaded.current = true;
 
     const onPos = (lat: number, lng: number, isMe: boolean) => {
+      // Initial render uses `center`; once the map is mounted, fly to the user
+      // so we always end up at their real location (even if we opened at a
+      // cached spot or the user only just granted permission).
       setCenter((c) => c ?? [lat, lng]);
       if (isMe) {
         setMe([lat, lng]);
         writePos(lat, lng);
+        const map = mapRef.current;
+        if (map) {
+          map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.6 });
+        }
       }
       loadParties(lat, lng);
     };
 
-    const fallback = readPos() ?? FALLBACK;
+    const applyFallback = () => {
+      const fb = readPos() ?? FALLBACK;
+      onPos(fb[0], fb[1], false);
+    };
 
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      applyFallback();
+      return;
+    }
+
+    const locate = () =>
       navigator.geolocation.getCurrentPosition(
         (pos) => onPos(pos.coords.latitude, pos.coords.longitude, true),
-        () => onPos(fallback[0], fallback[1], false),
+        applyFallback,
         // Accept a position up to 10 min old so revisits resolve instantly.
         { timeout: 8000, maximumAge: 600000 },
       );
+
+    // Use the Permissions API (where available) so we know whether a prompt
+    // will appear, and so we can auto-recenter the moment the user enables
+    // location later — instead of silently staying on the fallback.
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: "geolocation" })
+        .then((status) => {
+          if (status.state === "denied") applyFallback();
+          else locate();
+          status.onchange = () => {
+            if (status.state === "granted") locate();
+          };
+        })
+        .catch(locate);
     } else {
-      onPos(fallback[0], fallback[1], false);
+      locate();
     }
   }, [loadParties]);
 
