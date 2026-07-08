@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signUp } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
+import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
 
 type SearchParams = Promise<{ error?: string }>;
@@ -63,6 +64,7 @@ export default async function SignupPage({
               Mindst 8 tegn.
             </span>
           </label>
+          <Turnstile action="signup" />
           <SubmitButton pendingText="Opretter konto…" className="btn-primary">
             Opret konto
           </SubmitButton>

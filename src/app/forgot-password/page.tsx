@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requestPasswordReset } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
 
 type SearchParams = Promise<{ error?: string }>;
@@ -42,6 +43,7 @@ export default async function ForgotPasswordPage({
               className="auth-input"
             />
           </label>
+          <Turnstile action="password_reset" />
           <SubmitButton pendingText="Sender…" className="btn-primary">
             Send nulstillingslink
           </SubmitButton>

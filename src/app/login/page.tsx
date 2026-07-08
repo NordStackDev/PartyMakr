@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { signIn, resendConfirmation } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
+import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
 
 type SearchParams = Promise<{
@@ -55,6 +56,7 @@ export default async function LoginPage({
             </p>
             <form action={resendConfirmation} className="mt-3">
               <input type="hidden" name="email" value={unconfirmed} />
+              <Turnstile action="resend" />
               <SubmitButton pendingText="Sender…" className="btn-secondary">
                 Send bekræftelse igen
               </SubmitButton>
@@ -90,6 +92,7 @@ export default async function LoginPage({
               className="auth-input"
             />
           </label>
+          <Turnstile action="login" />
           <SubmitButton pendingText="Logger ind…" className="btn-primary">
             Log ind
           </SubmitButton>

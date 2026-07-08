@@ -19,13 +19,18 @@ function withError(path: string, message: string) {
 export async function signIn(formData: FormData) {
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
+  const captchaToken = getString(formData, "captchaToken") || undefined;
 
   if (!email || !password) {
     withError("/login", "E-mail og adgangskode er påkrævet.");
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken },
+  });
 
   if (error) {
     // The password may be correct but the account isn't confirmed yet. Send the
@@ -59,6 +64,7 @@ export async function signIn(formData: FormData) {
 
 export async function resendConfirmation(formData: FormData) {
   const email = getString(formData, "email").trim();
+  const captchaToken = getString(formData, "captchaToken") || undefined;
 
   if (!email) {
     withError("/login", "Indtast din e-mail for at sende bekræftelseslinket igen.");
@@ -70,6 +76,7 @@ export async function resendConfirmation(formData: FormData) {
     email,
     options: {
       emailRedirectTo: `${getSiteURL()}/auth/confirm`,
+      captchaToken,
     },
   });
 
@@ -87,6 +94,7 @@ export async function resendConfirmation(formData: FormData) {
 export async function signUp(formData: FormData) {
   const email = getString(formData, "email").trim();
   const password = getString(formData, "password");
+  const captchaToken = getString(formData, "captchaToken") || undefined;
 
   if (!email || !password) {
     withError("/signup", "E-mail og adgangskode er påkrævet.");
@@ -102,6 +110,7 @@ export async function signUp(formData: FormData) {
     password,
     options: {
       emailRedirectTo: `${getSiteURL()}/auth/confirm`,
+      captchaToken,
     },
   });
 
@@ -143,6 +152,7 @@ export async function signOut() {
 
 export async function requestPasswordReset(formData: FormData) {
   const email = getString(formData, "email").trim();
+  const captchaToken = getString(formData, "captchaToken") || undefined;
 
   if (!email) {
     withError("/forgot-password", "Indtast din e-mailadresse.");
@@ -153,6 +163,7 @@ export async function requestPasswordReset(formData: FormData) {
   // for a recovery session and then forwards to /reset-password.
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${getSiteURL()}/auth/confirm?next=/reset-password`,
+    captchaToken,
   });
 
   if (error) {
