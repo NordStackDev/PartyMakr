@@ -16,6 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { deleteParty } from "@/lib/parties/actions";
 import { Avatar } from "@/components/friends/avatar";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { MiniMap } from "@/components/map/mini-map";
 import { RsvpButtons } from "@/components/parties/rsvp-buttons";
 import { JoinRequests } from "@/components/parties/join-requests";
@@ -73,7 +74,7 @@ export default async function PartyDetailPage({
   ] = await Promise.all([
       supabase
         .from("profiles")
-        .select("display_name, username, avatar_url")
+        .select("display_name, username, avatar_url, verified")
         .eq("id", party.host_id)
         .maybeSingle(),
       supabase
@@ -120,7 +121,7 @@ export default async function PartyDetailPage({
   if (reqRows.length > 0) {
     const { data: profs } = await supabase
       .from("profiles")
-      .select("id, display_name, username, avatar_url")
+      .select("id, display_name, username, avatar_url, verified")
       .in(
         "id",
         reqRows.map((r) => r.user_id),
@@ -131,6 +132,7 @@ export default async function PartyDetailPage({
         userId: r.user_id,
         name: p?.display_name || p?.username || "Ukendt bruger",
         avatarUrl: p?.avatar_url ?? null,
+        verified: !!p?.verified,
         threadId: threadByGuest.get(r.user_id) ?? null,
       };
     });
@@ -161,8 +163,9 @@ export default async function PartyDetailPage({
         className="mt-2 inline-flex items-center gap-2 self-start transition hover:opacity-80"
       >
         <Avatar url={host?.avatar_url ?? null} name={hostName} size={28} />
-        <span className="text-sm text-zinc-300">
+        <span className="flex items-center gap-1.5 text-sm text-zinc-300">
           Vært: <span className="font-semibold text-white">{hostName}</span>
+          {host?.verified ? <VerifiedBadge /> : null}
         </span>
       </Link>
 

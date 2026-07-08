@@ -20,6 +20,8 @@ const ACTION_LABEL: Record<string, string> = {
   revoke_invite: "Tilbagekaldte invitation",
   ban_user: "Udelukkede bruger",
   unban_user: "Ophævede udelukkelse",
+  verify_user: "Verificerede bruger",
+  unverify_user: "Fjernede verificering",
   delete_user: "Slettede bruger",
   update_profile: "Opdaterede profil",
   send_password_reset: "Sendte nulstillingsmail",
@@ -66,6 +68,10 @@ function describe(r: AuditRow, emailById: Map<string, string>): string {
       return `${actor} udelukkede ${who}`;
     case "unban_user":
       return `${actor} ophævede udelukkelsen af ${who}`;
+    case "verify_user":
+      return `${actor} verificerede ${who} som person`;
+    case "unverify_user":
+      return `${actor} fjernede verificeringen af ${who}`;
     case "update_profile":
       return `${actor} opdaterede profilen for ${who}`;
     case "send_password_reset":

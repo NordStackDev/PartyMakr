@@ -14,6 +14,7 @@ import {
   adminResendConfirmation,
   banUser,
   unbanUser,
+  setVerified,
   removeUser,
   removeAdmin,
 } from "@/lib/admin/actions";
@@ -28,6 +29,7 @@ export function UserEditor({
   userId,
   emailConfirmed,
   banned,
+  verified,
   profile,
   adminPermissions,
   isSelf,
@@ -37,6 +39,7 @@ export function UserEditor({
   userId: string;
   emailConfirmed: boolean;
   banned: boolean;
+  verified: boolean;
   profile: Profile;
   adminPermissions: string[] | null;
   isSelf: boolean;
@@ -99,6 +102,7 @@ export function UserEditor({
           userId={userId}
           emailConfirmed={emailConfirmed}
           banned={banned}
+          verified={verified}
           isSelf={isSelf}
           onResult={run}
         />
@@ -292,12 +296,14 @@ function ActionsSection({
   userId,
   emailConfirmed,
   banned,
+  verified,
   isSelf,
   onResult,
 }: {
   userId: string;
   emailConfirmed: boolean;
   banned: boolean;
+  verified: boolean;
   isSelf: boolean;
   onResult: (
     fn: () => Promise<void>,
@@ -348,6 +354,20 @@ function ActionsSection({
             Gensend bekræftelse
           </button>
         ) : null}
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            act(
+              () => setVerified(userId, !verified),
+              verified ? "Verificering fjernet." : "Bruger verificeret.",
+            )
+          }
+          className="rounded-full border border-[#63bfcb]/40 px-4 py-2 text-sm font-semibold text-[#63bfcb] transition hover:bg-[#63bfcb]/10 disabled:opacity-60"
+        >
+          {verified ? "Fjern verificering" : "Verificér som person"}
+        </button>
 
         {!isSelf ? (
           banned ? (

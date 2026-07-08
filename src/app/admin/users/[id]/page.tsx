@@ -32,7 +32,7 @@ export default async function AdminUserDetailPage({
       admin.auth.admin.getUserById(id),
       supabase
         .from("profiles")
-        .select("display_name, username, bio, created_at, banned_at")
+        .select("display_name, username, bio, created_at, banned_at, verified")
         .eq("id", id)
         .maybeSingle(),
       admin
@@ -49,6 +49,7 @@ export default async function AdminUserDetailPage({
   const email = authUser.user.email ?? "—";
   const emailConfirmed = !!authUser.user.email_confirmed_at;
   const banned = !!profile.banned_at;
+  const verified = !!profile.verified;
 
   return (
     <div className="space-y-6">
@@ -76,6 +77,11 @@ export default async function AdminUserDetailPage({
               Blokeret
             </span>
           ) : null}
+          {verified ? (
+            <span className="rounded-full bg-[#63bfcb]/15 px-2 py-0.5 text-[#63bfcb]">
+              Bekræftet person
+            </span>
+          ) : null}
         </p>
       </div>
 
@@ -83,6 +89,7 @@ export default async function AdminUserDetailPage({
         userId={id}
         emailConfirmed={emailConfirmed}
         banned={banned}
+        verified={verified}
         profile={{
           display_name: profile.display_name,
           username: profile.username,

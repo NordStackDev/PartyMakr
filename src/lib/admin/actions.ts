@@ -155,7 +155,6 @@ export async function revokeInvite(partyId: string, inviteeId: string) {
  */
 export async function banUser(userId: string) {
   const actorId = await assertPermission("moderate");
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   const { error } = await admin.auth.admin.updateUserById(userId, {
@@ -165,7 +164,9 @@ export async function banUser(userId: string) {
     throw new Error("Kunne ikke udelukke brugeren.");
   }
 
-  await supabase
+  // Service-role write: `banned_at` is not in the authenticated column grant
+  // (00031), so this must go through the admin client.
+  await admin
     .from("profiles")
     .update({ banned_at: new Date().toISOString() })
     .eq("id", userId);
@@ -210,7 +211,6 @@ export async function removeUser(userId: string) {
  */
 export async function unbanUser(userId: string) {
   const actorId = await assertPermission("moderate");
-  const supabase = await createClient();
   const admin = createAdminClient();
 
   const { error } = await admin.auth.admin.updateUserById(userId, {
@@ -220,10 +220,7 @@ export async function unbanUser(userId: string) {
     throw new Error("Kunne ikke ophæve udelukkelsen.");
   }
 
-  await supabase
-    .from("profiles")
-    .update({ banned_at: null })
-    .eq("id", userId);
+  await admin.from("profiles").update({ banned_at: null }).eq("id", userId);
 
   await audit(actorId, "unban_user", "user", userId, {
     email: await emailOf(admin, userId),
@@ -231,6 +228,35 @@ export async function unbanUser(userId: string) {
 
   revalidatePath("/admin/users");
   revalidatePath("/admin");
+}
+
+/**
+ * Mark a profile as a verified human ("Bekræftet person") or clear it.
+ * Service-role write (the verification columns aren't in the authenticated
+ * grant — 00031/00032), gated by 'moderate', audited.
+ */
+export async function setVerified(userId: string, verified: boolean) {
+  const actorId = await assertPermission("moderate");
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from("profiles")
+    .update({
+      verified,
+      verified_at: verified ? new Date().toISOString() : null,
+      verification_method: verified ? "admin" : null,
+    })
+    .eq("id", userId);
+  if (error) {
+    throw new Error("Kunne ikke ændre verificeringen.");
+  }
+
+  await audit(actorId, verified ? "verify_user" : "unverify_user", "user", userId, {
+    email: await emailOf(admin, userId),
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath(`/admin/users/${userId}`);
 }
 
 // ===========================================================================

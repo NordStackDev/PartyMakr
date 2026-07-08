@@ -9,7 +9,13 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  // Only allow same-origin relative paths — an absolute/`//` URL here would be
+  // an open redirect after a valid token (phishing / session fixation).
+  const nextRaw = searchParams.get("next");
+  const next =
+    nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//")
+      ? nextRaw
+      : "/dashboard";
 
   const supabase = await createClient();
 

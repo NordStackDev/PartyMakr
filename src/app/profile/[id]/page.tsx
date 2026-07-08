@@ -6,6 +6,7 @@ import { CalendarDays } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { Avatar } from "@/components/friends/avatar";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { BackButton } from "@/components/back-button";
 
 type Profile = {
@@ -15,6 +16,7 @@ type Profile = {
   avatar_url: string | null;
   bio: string | null;
   created_at: string;
+  verified: boolean;
 };
 
 export default async function ProfilePage({
@@ -36,7 +38,7 @@ export default async function ProfilePage({
   // Din egen profil redigeres under Indstillinger — vis den bare her også.
   const { data } = await supabase
     .from("profiles")
-    .select("id, display_name, username, avatar_url, bio, created_at")
+    .select("id, display_name, username, avatar_url, bio, created_at, verified")
     .eq("id", id)
     .maybeSingle();
   const profile = data as Profile | null;
@@ -54,11 +56,17 @@ export default async function ProfilePage({
 
       <div className="mt-6 flex flex-col items-center text-center">
         <Avatar url={profile.avatar_url} name={name} size={96} />
-        <h1 className="mt-4 text-xl font-semibold tracking-tight text-white">
+        <h1 className="mt-4 flex items-center gap-2 text-xl font-semibold tracking-tight text-white">
           {name}
+          {profile.verified ? <VerifiedBadge size={18} /> : null}
         </h1>
         {profile.username ? (
           <p className="mt-0.5 text-sm text-zinc-400">@{profile.username}</p>
+        ) : null}
+        {profile.verified ? (
+          <div className="mt-2">
+            <VerifiedBadge withLabel />
+          </div>
         ) : null}
 
         {profile.bio ? (

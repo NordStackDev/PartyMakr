@@ -6,6 +6,7 @@ import { Check, MessageCircle, X } from "lucide-react";
 
 import { respondJoinRequest } from "@/lib/parties/actions";
 import { Avatar } from "@/components/friends/avatar";
+import { VerifiedBadge } from "@/components/verified-badge";
 
 /** Host view: pending join requests with chat + approve/decline. */
 export function JoinRequests({
@@ -17,6 +18,7 @@ export function JoinRequests({
     userId: string;
     name: string;
     avatarUrl?: string | null;
+    verified?: boolean;
     threadId?: string | null;
   }[];
 }) {
@@ -40,8 +42,11 @@ export function JoinRequests({
               className="flex min-w-0 items-center gap-3 transition hover:opacity-80"
             >
               <Avatar url={r.avatarUrl ?? null} name={r.name} size={36} />
-              <span className="min-w-0 truncate text-sm text-zinc-100">
-                {r.name}
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 truncate text-sm text-zinc-100">
+                  {r.name}
+                </span>
+                {r.verified ? <VerifiedBadge /> : null}
               </span>
             </Link>
             <span className="flex shrink-0 gap-2">
