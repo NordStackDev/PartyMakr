@@ -18,7 +18,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
   ]);
 
-  const radiusKm = profile?.search_radius_km ?? 25;
+  const radiusKm = profile?.search_radius_km ?? 250;
 
   return (
     <main className="relative flex flex-1 flex-col">

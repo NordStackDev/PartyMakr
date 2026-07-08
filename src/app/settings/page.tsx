@@ -27,7 +27,7 @@ export default async function SettingsPage({
     .maybeSingle();
 
   const { saved, error } = await searchParams;
-  const radius = profile?.search_radius_km ?? 25;
+  const radius = profile?.search_radius_km ?? 250;
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">

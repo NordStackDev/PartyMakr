@@ -69,7 +69,7 @@ export default async function ProfilePage({
 
         <p className="mt-4 flex items-center gap-1.5 text-xs text-zinc-400">
           <CalendarDays size={14} className="text-amber-300" />
-          Medlem siden {memberSince}
+          Registreret siden {memberSince}
         </p>
 
         {/* TODO: venne-status + "Tilføj ven"-knap. Genbrug logikken fra

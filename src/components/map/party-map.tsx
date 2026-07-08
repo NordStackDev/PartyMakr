@@ -180,7 +180,7 @@ function writePos(lat: number, lng: number) {
 }
 
 export default function PartyMap({
-  radiusKm = 25,
+  radiusKm = 250,
   admin = false,
 }: {
   radiusKm?: number;
