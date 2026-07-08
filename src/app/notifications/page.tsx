@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Mail, PartyPopper, Bell, UserPlus } from "lucide-react";
+import {
+  Mail,
+  MessageCircle,
+  PartyPopper,
+  Bell,
+  CalendarX,
+  UserPlus,
+} from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { MarkRead } from "@/components/notifications/mark-read";
+import { BackButton } from "@/components/back-button";
 
 function timeAgo(value: string): string {
   return new Date(value).toLocaleString("da-DK", {
@@ -22,7 +30,15 @@ type Notification = {
   created_at: string;
 };
 
-const ICON = { invite: Mail, rsvp: PartyPopper, friend: UserPlus } as const;
+const ICON = {
+  invite: Mail,
+  rsvp: PartyPopper,
+  friend: UserPlus,
+  join_request: UserPlus,
+  join_response: PartyPopper,
+  message: MessageCircle,
+  party_cancelled: CalendarX,
+} as const;
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -41,12 +57,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
-      <Link
-        href="/dashboard"
-        className="text-sm text-zinc-300 hover:text-zinc-100"
-      >
-        ← Kort
-      </Link>
+      <BackButton />
       <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
         Notifikationer
       </h1>

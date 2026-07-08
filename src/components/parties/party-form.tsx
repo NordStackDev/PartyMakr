@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import { useActionState, useState } from "react";
 
 import { type CreatePartyState } from "@/lib/parties/actions";
+import { lookupPostcode } from "@/lib/postcode";
+import type { FlyTarget } from "@/components/map/location-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { DateTimeField } from "@/components/parties/datetime-field";
 
@@ -60,6 +62,38 @@ export function PartyForm({
     action,
     {},
   );
+  const [postcode, setPostcode] = useState("");
+  const [postcodeCity, setPostcodeCity] = useState<string | null>(null);
+  const [postcodeError, setPostcodeError] = useState(false);
+  const [flyTo, setFlyTo] = useState<FlyTarget | null>(null);
+  // The postcode's town centre doubles as the party location when the host
+  // doesn't drop a pin — the pin is optional fine-tuning.
+  const [pcCenter, setPcCenter] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+
+  // React 19 auto-resets uncontrolled fields when the action finishes — also
+  // on error. The action echoes the submitted input back in state.values, and
+  // seeding defaultValue from it keeps everything the user typed.
+  const v = state.values;
+
+  // Postcode is required when creating (guides the host to the right town);
+  // an existing party already has its location, so editing keeps it optional.
+  const isEdit = defaults != null;
+
+  async function findPostcode(value: string) {
+    const hit = await lookupPostcode(value);
+    if (hit) {
+      setPostcodeCity(hit.navn);
+      setPostcodeError(false);
+      setPcCenter({ lat: hit.lat, lng: hit.lng });
+      setFlyTo({ lat: hit.lat, lng: hit.lng, nonce: Date.now() });
+    } else {
+      setPostcodeCity(null);
+      setPcCenter(null);
+      setPostcodeError(true);
+    }
+  }
 
   function useMyLocation() {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -83,7 +117,7 @@ export function PartyForm({
           name="title"
           required
           maxLength={120}
-          defaultValue={defaults?.title ?? ""}
+          defaultValue={v?.title ?? defaults?.title ?? ""}
           className={`auth-input ${state.fieldErrors?.title ? "border-red-400/60" : ""}`}
         />
         {state.fieldErrors?.title ? (
@@ -98,19 +132,56 @@ export function PartyForm({
         <textarea
           name="description"
           rows={3}
-          defaultValue={defaults?.description ?? ""}
+          defaultValue={v?.description ?? defaults?.description ?? ""}
           className="auth-input resize-none"
         />
       </label>
 
       <div>
         <span className="auth-label">Placering</span>
+        {/* Jump the map to a city by postcode — no name attribute, so the
+            field is never submitted with the form. */}
+        <div className="mt-1 flex items-center gap-2">
+          <input
+            name="postcode"
+            required={!isEdit}
+            value={postcode}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+              setPostcode(v);
+              setPostcodeError(false);
+              if (v.length === 4) findPostcode(v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                findPostcode(postcode);
+              }
+            }}
+            inputMode="numeric"
+            maxLength={4}
+            placeholder={isEdit ? "Postnummer, fx 6950" : "Postnummer (påkrævet)"}
+            aria-label="Byens postnummer"
+            className={`auth-input flex-1 ${postcodeError || state.fieldErrors?.postcode ? "border-red-400/60" : ""}`}
+          />
+          <span
+            className={`w-28 shrink-0 text-xs ${postcodeError ? "text-red-300" : "text-amber-300"}`}
+          >
+            {postcodeError ? "Ukendt postnummer" : (postcodeCity ?? "")}
+          </span>
+        </div>
+        {state.fieldErrors?.postcode ? (
+          <span className="mt-1 block text-sm text-red-300">
+            {state.fieldErrors.postcode}
+          </span>
+        ) : null}
         <div
-          className={`mt-1 h-[clamp(11rem,38vh,16rem)] overflow-hidden rounded-xl border ${state.fieldErrors?.location ? "border-red-400/60" : "border-white/10"}`}
+          className={`mt-2 h-[clamp(11rem,38vh,16rem)] overflow-hidden rounded-xl border ${state.fieldErrors?.location ? "border-red-400/60" : "border-white/10"}`}
         >
           <LocationPicker
             value={loc}
             onPick={(lat, lng) => setLoc({ lat, lng })}
+            flyTo={flyTo}
           />
         </div>
         <div className="mt-2 flex items-center justify-between">
@@ -122,7 +193,11 @@ export function PartyForm({
             Brug min placering
           </button>
           <span className="text-xs text-zinc-400">
-            {loc ? "Placering valgt ✓" : "Tryk på kortet for at vælge"}
+            {loc
+              ? "Placering valgt ✓"
+              : pcCenter
+                ? `Bruger ${postcodeCity ?? "byens"} centrum`
+                : "Tryk på kortet (valgfrit)"}
           </span>
         </div>
         {state.fieldErrors?.location ? (
@@ -130,15 +205,17 @@ export function PartyForm({
             {state.fieldErrors.location}
           </span>
         ) : null}
-        <input type="hidden" name="lat" value={loc?.lat ?? ""} />
-        <input type="hidden" name="lng" value={loc?.lng ?? ""} />
+        <input type="hidden" name="lat" value={loc?.lat ?? pcCenter?.lat ?? ""} />
+        <input type="hidden" name="lng" value={loc?.lng ?? pcCenter?.lng ?? ""} />
       </div>
 
       <label className="block">
-        <span className="auth-label">Adresse (valgfri)</span>
+        <span className="auth-label">
+          Adresse (bruges til gæster, der bliver godkendt af dig)
+        </span>
         <input
           name="address"
-          defaultValue={defaults?.address ?? ""}
+          defaultValue={v?.address ?? defaults?.address ?? ""}
           className="auth-input"
         />
       </label>
@@ -163,7 +240,7 @@ export function PartyForm({
         <span className="auth-label">Hvor er festen?</span>
         <select
           name="venue_type"
-          defaultValue={defaults?.venueType ?? "own_place"}
+          defaultValue={v?.venue_type ?? defaults?.venueType ?? "own_place"}
           className="auth-input"
         >
           <option value="own_place">Eget sted</option>
@@ -176,7 +253,7 @@ export function PartyForm({
           <span className="auth-label">Synlighed</span>
           <select
             name="visibility"
-            defaultValue={defaults?.visibility ?? "public"}
+            defaultValue={v?.visibility ?? defaults?.visibility ?? "public"}
             className="auth-input"
           >
             <option value="public">Offentlig</option>
@@ -191,7 +268,7 @@ export function PartyForm({
             min={1}
             inputMode="numeric"
             placeholder="Ubegrænset"
-            defaultValue={defaults?.capacity ?? ""}
+            defaultValue={v?.capacity ?? defaults?.capacity ?? ""}
             className="auth-input"
           />
         </label>

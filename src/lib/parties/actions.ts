@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type RsvpStatus = "going" | "interested" | "maybe";
 
+export type JoinRequestStatus = "pending" | "accepted" | "declined";
+
 function str(formData: FormData, key: string): string {
   const v = formData.get(key);
   return typeof v === "string" ? v : "";
@@ -14,8 +16,22 @@ function str(formData: FormData, key: string): string {
 
 export type PartyFieldErrors = {
   title?: string;
+  postcode?: string;
   location?: string;
   starts_at?: string;
+};
+
+/** Everything the user typed, echoed back on error. React 19 auto-resets
+ * uncontrolled fields when a form action finishes — ALSO on error — so the
+ * form must re-seed its defaultValues from here to keep the user's input. */
+export type PartyFormValues = {
+  title: string;
+  description: string;
+  postcode: string;
+  address: string;
+  visibility: "public" | "private";
+  venue_type: "own_place" | "public_spot";
+  capacity: string;
 };
 
 export type CreatePartyState = {
@@ -23,6 +39,8 @@ export type CreatePartyState = {
   error?: string;
   /** Per-field validation messages, shown inline under each field. */
   fieldErrors?: PartyFieldErrors;
+  /** The submitted input, so the form survives the post-action reset. */
+  values?: PartyFormValues;
 };
 
 function venueType(formData: FormData): "own_place" | "public_spot" {
@@ -31,9 +49,22 @@ function venueType(formData: FormData): "own_place" | "public_spot" {
     : "own_place";
 }
 
+function readValues(formData: FormData): PartyFormValues {
+  return {
+    title: str(formData, "title"),
+    description: str(formData, "description"),
+    postcode: str(formData, "postcode"),
+    address: str(formData, "address"),
+    visibility: str(formData, "visibility") === "private" ? "private" : "public",
+    venue_type: venueType(formData),
+    capacity: str(formData, "capacity"),
+  };
+}
+
 /**
- * Create a party. Location comes from the map picker (lat/lng). Inserts via the
- * create_party RPC (handles the geography column); RLS enforces host = self.
+ * Create a party. Location comes from the postcode's town centre or the map
+ * pin (optional fine-tuning). Inserts via the create_party RPC (handles the
+ * geography column); RLS enforces host = self.
  *
  * Uses the useActionState signature so validation errors are RETURNED (no
  * navigation) — the form stays mounted and keeps everything the user typed.
@@ -55,14 +86,20 @@ export async function createParty(
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
+  const postcode = str(formData, "postcode").trim();
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
+  if (!/^\d{4}$/.test(postcode)) {
+    fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
+  }
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    fieldErrors.location = "Vælg en placering på kortet.";
+    fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
   }
   if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
-  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors, values: readValues(formData) };
+  }
 
   const capacityRaw = str(formData, "capacity").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
@@ -86,6 +123,7 @@ export async function createParty(
       error: error?.message
         ? `Kunne ikke oprette festen: ${error.message}`
         : "Kunne ikke oprette festen.",
+      values: readValues(formData),
     };
   }
 
@@ -119,10 +157,12 @@ export async function updateParty(
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    fieldErrors.location = "Vælg en placering på kortet.";
+    fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
   }
   if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
-  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors, values: readValues(formData) };
+  }
 
   const capacityRaw = str(formData, "capacity").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
@@ -145,6 +185,7 @@ export async function updateParty(
   if (error) {
     return {
       error: `Kunne ikke gemme ændringerne: ${error.message}`,
+      values: readValues(formData),
     };
   }
 
@@ -153,8 +194,9 @@ export async function updateParty(
   redirect(`/parties/${partyId}`);
 }
 
-/** RSVP (or change RSVP) to a party. */
-export async function rsvp(partyId: string, status: RsvpStatus) {
+/** Delete (cancel) a party — host only, enforced by RLS. Cascades clean up
+ * invites, attendees, requests and chat; a DB trigger notifies the guests. */
+export async function deleteParty(partyId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -162,19 +204,92 @@ export async function rsvp(partyId: string, status: RsvpStatus) {
   if (!user) redirect("/login");
 
   const { error } = await supabase
-    .from("party_attendees")
-    .upsert(
-      { party_id: partyId, user_id: user.id, status },
-      { onConflict: "party_id,user_id" },
-    );
+    .from("parties")
+    .delete()
+    .eq("id", partyId)
+    .eq("host_id", user.id);
   if (error) {
-    throw new Error("Kunne ikke gemme dit svar.");
+    throw new Error("Festen kunne ikke slettes.");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/parties/mine");
+  redirect("/parties/mine");
+}
+
+/** Ask to join a party. The host must approve before you count as going. */
+export async function requestJoin(partyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // A declined row blocks the PK — clear it so the user can ask again.
+  await supabase
+    .from("party_join_requests")
+    .delete()
+    .eq("party_id", partyId)
+    .eq("user_id", user.id)
+    .eq("status", "declined");
+
+  const { error } = await supabase
+    .from("party_join_requests")
+    .insert({ party_id: partyId, user_id: user.id });
+  // 23505 = already requested (double tap) — treat as success.
+  if (error && error.code !== "23505") {
+    throw new Error("Kunne ikke sende anmodningen.");
   }
 
   revalidatePath(`/parties/${partyId}`);
 }
 
-/** Withdraw an RSVP. */
+/** Withdraw a join request (also clears a declined one so you can re-ask). */
+export async function cancelJoinRequest(partyId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase
+    .from("party_join_requests")
+    .delete()
+    .eq("party_id", partyId)
+    .eq("user_id", user.id);
+  if (error) {
+    throw new Error("Kunne ikke trække anmodningen tilbage.");
+  }
+
+  revalidatePath(`/parties/${partyId}`);
+}
+
+/** Host only: approve or decline a join request (enforced in the RPC). */
+export async function respondJoinRequest(
+  partyId: string,
+  userId: string,
+  accept: boolean,
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("respond_join_request", {
+    p_party_id: partyId,
+    p_user_id: userId,
+    p_accept: accept,
+  });
+  if (error) {
+    throw new Error("Kunne ikke besvare anmodningen.");
+  }
+
+  revalidatePath(`/parties/${partyId}`);
+}
+
+/** Withdraw an RSVP / cancel attendance. Also clears any join request so the
+ * user starts from a clean slate (and can request again later). */
 export async function withdrawRsvp(partyId: string) {
   const supabase = await createClient();
   const {
@@ -190,6 +305,12 @@ export async function withdrawRsvp(partyId: string) {
   if (error) {
     throw new Error("Kunne ikke fjerne dit svar.");
   }
+
+  await supabase
+    .from("party_join_requests")
+    .delete()
+    .eq("party_id", partyId)
+    .eq("user_id", user.id);
 
   revalidatePath(`/parties/${partyId}`);
 }

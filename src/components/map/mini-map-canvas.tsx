@@ -22,13 +22,18 @@ export default function MiniMapCanvas({
     <MapContainer
       center={[lat, lng]}
       zoom={14}
+      // CARTO tiles show street NAMES but never house numbers (raw OSM does
+      // from z17). The zoom cap is belt-and-braces for the same reason.
+      maxZoom={16}
       scrollWheelZoom={false}
       className="h-full w-full"
       style={{ background: "#14100b" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={16}
       />
       <Marker position={[lat, lng]} icon={pinIcon} />
     </MapContainer>

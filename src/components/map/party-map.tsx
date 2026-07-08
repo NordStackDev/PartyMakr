@@ -2,9 +2,22 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, LocateFixed, Users } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  LocateFixed,
+  Search,
+  Users,
+} from "lucide-react";
 import {
   MapContainer,
   TileLayer,
@@ -16,9 +29,18 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { setMapApi } from "@/lib/map-controls";
+import { formatDistance, haversineM } from "@/lib/geo";
+import { fillFor, fmtDateTime } from "@/lib/party-display";
+import {
+  lookupPostcode,
+  reversePostcode,
+  type PostcodeRef,
+} from "@/lib/postcode";
+import { PartyClusterSheet } from "./party-cluster-sheet";
 
-type NearbyParty = {
+export type NearbyParty = {
   id: string;
+  host_id: string;
   title: string;
   description: string | null;
   address: string | null;
@@ -52,27 +74,26 @@ const TILES = {
   },
 };
 
-// Party fullness → colour. Green = room to spare, orange = almost full,
-// red = full. Parties without a capacity count as open (green).
-type Fill = { color: string; label: string };
-const FILL_OPEN: Fill = { color: "#34d399", label: "Ledige pladser" };
-const FILL_ALMOST: Fill = { color: "#f97316", label: "Næsten fuld" };
-const FILL_FULL: Fill = { color: "#ef4444", label: "Fuld" };
-
-function fillFor(going: number, capacity: number | null): Fill {
-  if (!capacity || capacity <= 0) return FILL_OPEN;
-  const ratio = going / capacity;
-  if (ratio >= 1) return FILL_FULL;
-  if (ratio >= 0.7) return FILL_ALMOST;
-  return FILL_OPEN;
-}
-
 function partyIcon(color: string) {
   return L.divIcon({
     className: "",
     html: `<div style="width:14px;height:14px;border-radius:9999px;background:${color};box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
+  });
+}
+
+// Postcode pin: a gold map pin showing how many parties the postcode holds.
+// The teardrop is a rotated square; the count sits in an unrotated overlay.
+function postcodePin(count: number) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="position:relative;width:34px;height:42px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))">
+      <div style="position:absolute;left:1px;top:1px;width:32px;height:32px;background:#FCBE4F;border:2px solid #63bfcb;border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></div>
+      <div style="position:absolute;left:1px;top:1px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#14100b">${count}</div>
+    </div>`,
+    iconSize: [34, 42],
+    iconAnchor: [17, 40],
   });
 }
 
@@ -83,16 +104,6 @@ const meIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-function fmt(value: string): string {
-  return new Date(value).toLocaleString("da-DK", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-function distance(m: number): string {
-  return m < 1000 ? `${Math.round(m)} m væk` : `${(m / 1000).toFixed(1)} km væk`;
-}
 
 // Privacy: don't reveal a party's exact address on the discovery map. Each
 // party is drawn as an approximate area instead of a precise pin. The shown
@@ -130,6 +141,18 @@ function fuzzedCenter(lat: number, lon: number, id: string): [number, number] {
     (dist * Math.sin(angle)) / (111320 * Math.cos((lat * Math.PI) / 180));
   return [lat + dLat, lon + dLon];
 }
+
+// Parties in the SAME POSTCODE render as one pin (with an area circle around
+// it) placed on the postcode's town centre — tapping it opens a sheet listing
+// every party inside. Postcodes come from DAWA reverse lookup (lib/postcode).
+const POSTCODE_RADIUS_M = 450;
+
+export type PostcodeGroup = {
+  nr: string;
+  navn: string;
+  center: [number, number];
+  parties: NearbyParty[];
+};
 
 // Remember the last known position across visits so the map opens at the user's
 // real location instead of the Copenhagen fallback. localStorage (not session)
@@ -169,9 +192,85 @@ export default function PartyMap({
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const [base, setBase] = useState<"satellite" | "dark">("satellite");
   const [locating, setLocating] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [searchError, setSearchError] = useState(false);
   const [supabase] = useState(createClient);
   const mapRef = useRef<L.Map | null>(null);
   const loaded = useRef(false);
+  const [pcByParty, setPcByParty] = useState<
+    Record<string, PostcodeRef | null>
+  >({});
+  const [pcCenters, setPcCenters] = useState<Record<string, [number, number]>>(
+    {},
+  );
+  const [sheet, setSheet] = useState<PostcodeGroup | null>(null);
+
+  // Always the distance from the USER — parties may have been loaded around a
+  // searched postcode, whose RPC distance_m would mislead here.
+  const distFromMe = useCallback(
+    (p: NearbyParty) =>
+      me ? haversineM(me[0], me[1], p.lat, p.lon) : p.distance_m,
+    [me],
+  );
+
+  // Resolve each party's postcode + each postcode's town centre (both cached
+  // in lib/postcode, so revisits are instant and offline-safe).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const entries = await Promise.all(
+        parties.map(
+          async (p) => [p.id, await reversePostcode(p.lat, p.lon)] as const,
+        ),
+      );
+      if (!active) return;
+      setPcByParty(Object.fromEntries(entries));
+
+      const nrs = [...new Set(entries.flatMap(([, r]) => (r ? [r.nr] : [])))];
+      const centers = await Promise.all(
+        nrs.map(async (nr) => [nr, await lookupPostcode(nr)] as const),
+      );
+      if (!active) return;
+      const next: Record<string, [number, number]> = {};
+      for (const [nr, hit] of centers) {
+        if (hit) next[nr] = [hit.lat, hit.lng];
+      }
+      setPcCenters((prev) => ({ ...prev, ...next }));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [parties]);
+
+  // EVERY party renders inside its postcode's circle on the town — also when
+  // it's alone there (best privacy: the circle never narrows down the spot).
+  // Only parties whose postcode can't be resolved (lookup failed / outside
+  // DK) fall back to an individual fuzzed circle.
+  const { groups, singles } = useMemo(() => {
+    const byNr = new Map<string, NearbyParty[]>();
+    const singles: NearbyParty[] = [];
+    for (const p of parties) {
+      const nr = pcByParty[p.id]?.nr;
+      if (nr) byNr.set(nr, [...(byNr.get(nr) ?? []), p]);
+      else singles.push(p);
+    }
+    const groups: PostcodeGroup[] = [];
+    for (const [nr, list] of byNr) {
+      const center = pcCenters[nr];
+      if (center) {
+        groups.push({
+          nr,
+          navn: pcByParty[list[0].id]?.navn ?? "",
+          center,
+          parties: list,
+        });
+      } else {
+        singles.push(...list);
+      }
+    }
+    return { groups, singles };
+  }, [parties, pcByParty, pcCenters]);
 
   const loadParties = useCallback(
     async (lat: number, lng: number) => {
@@ -181,6 +280,7 @@ export default function PartyMap({
         radius_m: Math.round(radiusKm * 1000),
       });
       setParties((data ?? []) as NearbyParty[]);
+      setSheet(null); // the open list may no longer match the loaded area
     },
     [supabase, radiusKm],
   );
@@ -265,6 +365,24 @@ export default function PartyMap({
     );
   }, [loadParties]);
 
+  // Jump to a Danish postcode's city and load the parties around it. The
+  // popups still show the distance from the user (see haversineM).
+  const searchPostcode = useCallback(
+    async (value: string) => {
+      const hit = await lookupPostcode(value);
+      if (!hit) {
+        setSearchError(true);
+        return;
+      }
+      setSearchError(false);
+      setQuery("");
+      setSearchOpen(false);
+      mapRef.current?.flyTo([hit.lat, hit.lng], 12, { duration: 0.8 });
+      loadParties(hit.lat, hit.lng);
+    },
+    [loadParties],
+  );
+
   // Publish map actions to the pull-up menu (cleared on unmount / leaving map).
   useEffect(() => {
     setMapApi({
@@ -312,7 +430,24 @@ export default function PartyMap({
 
         {me ? <Marker position={me} icon={meIcon} interactive={false} /> : null}
 
-        {parties.map((p) => {
+        {groups.map((g) => (
+          /* Pin + area circle on the postcode's town — tap opens the list. */
+          <Fragment key={g.nr}>
+            <Circle
+              center={g.center}
+              radius={POSTCODE_RADIUS_M}
+              pathOptions={areaStyle("#FCBE4F")}
+              eventHandlers={{ click: () => setSheet(g) }}
+            />
+            <Marker
+              position={g.center}
+              icon={postcodePin(g.parties.length)}
+              eventHandlers={{ click: () => setSheet(g) }}
+            />
+          </Fragment>
+        ))}
+
+        {singles.map((p) => {
           const c = fuzzedCenter(p.lat, p.lon, p.id);
           const going = p.going_count ?? 0;
           const fill = fillFor(going, p.capacity);
@@ -345,13 +480,13 @@ export default function PartyMap({
                         {fill.label}
                       </span>
                       <span className="text-[11px] text-zinc-400">
-                        {distance(p.distance_m)}
+                        {formatDistance(distFromMe(p))}
                       </span>
                     </div>
 
                     <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-300">
                       <CalendarDays size={13} className="text-amber-300" />
-                      {fmt(p.starts_at)}
+                      {fmtDateTime(p.starts_at)}
                     </p>
                     {p.capacity ? (
                       <p className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-400">
@@ -382,6 +517,56 @@ export default function PartyMap({
           );
         })}
       </MapContainer>
+
+      {/* Postcode search — jump the map to any Danish city. Stacked above the
+          locate button. */}
+      <div className="absolute bottom-[calc(var(--nav-height)+4.25rem)] left-10 z-[1000] flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setSearchOpen((o) => !o);
+            setSearchError(false);
+          }}
+          aria-label="Søg postnummer"
+          aria-expanded={searchOpen}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/15 bg-[#14100b]/70 text-zinc-100 shadow-lg shadow-black/40 backdrop-blur-md transition active:scale-95"
+        >
+          <Search size={20} />
+        </button>
+        {searchOpen ? (
+          <input
+            autoFocus
+            value={query}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+              setQuery(v);
+              setSearchError(false);
+              if (v.length === 4) searchPostcode(v);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") searchPostcode(query);
+            }}
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Postnr."
+            aria-label="Postnummer"
+            className={`h-11 w-28 rounded-full border bg-[#14100b]/70 px-4 text-sm text-zinc-100 placeholder-zinc-500 shadow-lg shadow-black/40 outline-none backdrop-blur-md ${
+              searchError ? "border-red-400/60" : "border-white/15"
+            }`}
+          />
+        ) : null}
+      </div>
+
+      {/* Party list for a tapped postcode circle — request to join inline. */}
+      {sheet ? (
+        <PartyClusterSheet
+          navn={sheet.navn}
+          nr={sheet.nr}
+          parties={sheet.parties}
+          me={me}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
 
       {/* Find-my-location — standalone on the map (other controls live in the
           pull-up menu). Thumb-reachable, just above the floating tab bar. */}

@@ -11,6 +11,7 @@ const LINKS: { href: string; label: string; perm: PermissionKey }[] = [
   { href: "/admin/parties", label: "Fester", perm: "parties" },
   { href: "/admin/invites", label: "Invitationer", perm: "invites" },
   { href: "/admin/audit", label: "Aktivitetslog", perm: "audit" },
+  { href: "/admin/flags", label: "Flag", perm: "moderate" },
   { href: "/admin/team", label: "Admins", perm: "manage_admins" },
 ];
 

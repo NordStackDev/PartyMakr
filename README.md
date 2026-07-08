@@ -192,3 +192,8 @@ Rate hinaden som gæst også
 
 
 Radius på pin til festen, den skal ikke være så nøjagtig. 
+
+
+
+
+Vi skal fjerne, den nøjagtige pin man sætter på opret fest.

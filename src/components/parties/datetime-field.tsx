@@ -7,6 +7,13 @@ import { da } from "date-fns/locale/da";
 
 registerLocale("da", da);
 
+// On phones the text input would pop the on-screen keyboard underneath the
+// calendar overlay. Blur immediately on touch devices so only the picker is
+// used; desktop keeps manual typing.
+function blurOnTouch(e: React.FocusEvent<HTMLInputElement>) {
+  if (window.matchMedia("(pointer: coarse)").matches) e.target.blur();
+}
+
 /**
  * Danish datetime picker (dd/MM/yyyy HH:mm). Emits an ISO string in a hidden
  * input so the server action can `new Date(...)` it. Uses a portal so the
@@ -38,6 +45,7 @@ export function DateTimeField({
         wrapperClassName="block w-full"
         className="auth-input"
         withPortal
+        onFocus={blurOnTouch}
       />
       <input
         type="hidden"

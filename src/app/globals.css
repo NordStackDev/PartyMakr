@@ -51,6 +51,9 @@
    small phone and a large screen without touching individual utilities. */
 html {
   font-size: clamp(13.5px, 12.8px + 0.35vw, 15.5px);
+  /* Tell the browser this is a dark app so native UI (select dropdowns,
+     scrollbars, autofill) renders dark instead of default light. */
+  color-scheme: dark;
 }
 
 html,
@@ -247,6 +250,23 @@ label,
 }
 .pm-fullmap .leaflet-control-attribution a {
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* Native <select> styled to match the other inputs. The OS arrow is nearly
+   invisible on the dark theme (and iOS draws none at all), so strip the
+   native chrome and draw our own chevron. */
+select.auth-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a9a6b6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  background-size: 1rem;
+  padding-right: 2.75rem;
+  text-overflow: ellipsis;
+}
+select.auth-input:disabled {
+  opacity: 0.5;
 }
 
 /* Native <select> dropdown options on dark inputs (otherwise light-on-light) */

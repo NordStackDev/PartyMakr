@@ -10,6 +10,7 @@ import {
   Layers,
   LogOut,
   Map,
+  MessageCircle,
   Minus,
   Plus,
   Shield,
@@ -25,7 +26,15 @@ import { getMapApi, subscribeMapApi } from "@/lib/map-controls";
 import { requestOpenHelp, subscribeHelpOpened } from "@/lib/help-controls";
 
 /** Routes that belong to the consumer app shell — the tab bar shows only here. */
-const CONSUMER_PREFIXES = ["/dashboard", "/parties", "/settings", "/notifications", "/friends"];
+const CONSUMER_PREFIXES = [
+  "/dashboard",
+  "/parties",
+  "/settings",
+  "/notifications",
+  "/friends",
+  "/messages",
+  "/profile",
+];
 
 type Tab = {
   href: string;
@@ -38,13 +47,14 @@ type Tab = {
 const TABS: Tab[] = [
   { href: "/dashboard", label: "Kort", icon: Map, match: [] },
   { href: "/parties/mine", label: "Mine", icon: Ticket, match: [] },
-  { href: "/notifications", label: "Beskeder", icon: Bell, match: [] },
+  { href: "/messages", label: "Beskeder", icon: MessageCircle, match: [] },
   { href: "/settings", label: "Profil", icon: User, match: [] },
 ];
 
 /** Extra destinations surfaced in the pull-up menu (beyond the core tabs). */
 const MENU_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/friends", label: "Venner", icon: Users },
+  { href: "/notifications", label: "Notifikationer", icon: Bell },
 ];
 
 function isActive(pathname: string, tab: Tab): boolean {
@@ -55,6 +65,7 @@ function isActive(pathname: string, tab: Tab): boolean {
 export function BottomNav() {
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
+  const [msgUnread, setMsgUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [prevPath, setPrevPath] = useState(pathname);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -162,6 +173,29 @@ export function BottomNav() {
       .then(({ count }) => {
         if (active) setUnread(count ?? 0);
       });
+
+    // Chat threads with unread messages → badge on the Venner tab.
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || !active) return;
+      const { data } = await supabase
+        .from("party_threads")
+        .select("guest_id, last_message_at, guest_last_read_at, host_last_read_at");
+      if (!active) return;
+      const count = (data ?? []).filter(
+        (t) =>
+          new Date(t.last_message_at) >
+          new Date(
+            t.guest_id === user.id
+              ? t.guest_last_read_at
+              : t.host_last_read_at,
+          ),
+      ).length;
+      setMsgUnread(count);
+    })();
+
     return () => {
       active = false;
     };
@@ -185,6 +219,10 @@ export function BottomNav() {
           className="absolute -top-7 right-4 flex h-6 w-12 items-center justify-center rounded-full border border-white/12 bg-[#14100b]/75 text-zinc-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl transition before:absolute before:-inset-2 before:content-[''] hover:text-white"
         >
           <ChevronUp size={16} strokeWidth={2.4} />
+          {/* Unread notifications live in the pull-up menu — surface them here */}
+          {unread > 0 ? (
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#14100b]" />
+          ) : null}
         </button>
 
         <div className="relative flex items-stretch justify-around px-2">
@@ -193,7 +231,7 @@ export function BottomNav() {
               key={tab.href}
               tab={tab}
               active={isActive(pathname, tab)}
-              badge={tab.label === "Beskeder" ? unread : 0}
+              badge={tab.href === "/messages" ? msgUnread : 0}
             />
           ))}
 
@@ -214,7 +252,7 @@ export function BottomNav() {
               key={tab.href}
               tab={tab}
               active={isActive(pathname, tab)}
-              badge={tab.label === "Beskeder" ? unread : 0}
+              badge={tab.href === "/messages" ? msgUnread : 0}
             />
           ))}
         </div>
@@ -309,6 +347,11 @@ export function BottomNav() {
                 >
                   <Icon size={20} />
                   {item.label}
+                  {item.href === "/notifications" && unread > 0 ? (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

@@ -34,7 +34,6 @@ export default async function SettingsPage({
       <h1 className="text-xl font-semibold tracking-tight text-white">
         Profil &amp; indstillinger
       </h1>
-      <p className="mt-1 text-sm text-zinc-400">{user.email}</p>
 
       {saved ? (
         <p className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-300">

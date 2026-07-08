@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { createParty } from "@/lib/parties/actions";
 import { PartyForm } from "@/components/parties/party-form";
+import { BackButton } from "@/components/back-button";
 
 export default async function NewPartyPage() {
   const supabase = await createClient();
@@ -14,12 +14,7 @@ export default async function NewPartyPage() {
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
-      <Link
-        href="/dashboard"
-        className="text-sm text-zinc-300 hover:text-zinc-100"
-      >
-        ← Kort
-      </Link>
+      <BackButton />
       <h1 className="mt-3 text-xl font-semibold tracking-tight text-white">
         Opret en fest
       </h1>
