@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { BottomNav } from "@/components/nav/bottom-nav";
 import { HelpGuide } from "@/components/help/help-guide";
+import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 // Body / UI — soft, rounded, highly legible (harmonises with the logo).
@@ -88,6 +89,7 @@ export default function RootLayout({
           </div>
         </div>
         <ServiceWorkerRegister />
+        <RealtimeProvider />
       </body>
     </html>
   );
