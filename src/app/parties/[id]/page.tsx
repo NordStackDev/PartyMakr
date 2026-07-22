@@ -9,6 +9,8 @@ import {
   MessageCircle,
   Navigation,
   Pencil,
+  ShieldCheck,
+  Ticket,
   Trash2,
   Users,
 } from "lucide-react";
@@ -20,6 +22,13 @@ import { VerifiedBadge } from "@/components/verified-badge";
 import { MiniMap } from "@/components/map/mini-map";
 import { RsvpButtons } from "@/components/parties/rsvp-buttons";
 import { JoinRequests } from "@/components/parties/join-requests";
+import { HostGroupRequests } from "@/components/parties/host-group-requests";
+import { GroupPanel } from "@/components/parties/group-panel";
+import { VerifyAgeNotice } from "@/components/parties/verify-age-notice";
+import { reconcileByReference } from "@/lib/stripe/settle";
+import { ticketFeeDkk } from "@/lib/stripe/client";
+import { verifyStartHref } from "@/lib/idura/client";
+import { ageFromDob } from "@/lib/age";
 import { ConfirmButton } from "@/components/friends/confirm-button";
 import { BackButton } from "@/components/back-button";
 import type { JoinRequestStatus, RsvpStatus } from "@/lib/parties/actions";
@@ -43,16 +52,34 @@ type Party = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: number | null;
+  entre_dkk: number | null;
+  min_age: number | null;
+  gender_target: string | null;
   lon: number;
   lat: number;
 };
 
+const GENDER_LABEL: Record<string, string> = {
+  female: "Kvinder",
+  male: "Mænd",
+  other: "Andet",
+};
+
 export default async function PartyDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ betaling?: string; ref?: string }>;
 }) {
   const { id } = await params;
+  const { betaling, ref } = await searchParams;
+  // Returned from Mollie checkout — reconcile the payment before we render, so
+  // attendance shows as confirmed even if the webhook hasn't fired (localhost).
+  if (betaling === "retur" && ref) {
+    await reconcileByReference(ref).catch(() => {});
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -114,6 +141,47 @@ export default async function PartyDetailPage({
     (rows2.find((a) => a.user_id === user.id)?.status as RsvpStatus | undefined) ??
     null;
   const hostName = host?.display_name || host?.username || "en vært";
+
+  // Just-in-time gate: if this party restricts age/gender and the viewer isn't
+  // going yet, work out whether they can join — or must verify with MitID.
+  let joinBlock: { verify: boolean; message: string } | null = null;
+  if (!isHost && myRsvp !== "going") {
+    const [{ data: viewerProfile }, { data: viewerAgeRow }] = await Promise.all([
+      supabase.from("profiles").select("gender").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("profile_age")
+        .select("date_of_birth")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+    const viewerAge = viewerAgeRow?.date_of_birth
+      ? ageFromDob(viewerAgeRow.date_of_birth)
+      : null;
+    const viewerGender = viewerProfile?.gender ?? null;
+
+    if (party.gender_target && viewerGender !== party.gender_target) {
+      joinBlock = {
+        verify: false,
+        message: `Denne fest er kun for ${
+          GENDER_LABEL[party.gender_target] ?? "en bestemt målgruppe"
+        }.`,
+      };
+    } else if (
+      party.min_age != null &&
+      viewerAge != null &&
+      viewerAge < party.min_age
+    ) {
+      joinBlock = {
+        verify: false,
+        message: `Denne fest er kun for ${party.min_age}+ — du opfylder ikke aldersgrænsen.`,
+      };
+    } else if (party.min_age != null && viewerAge == null) {
+      joinBlock = {
+        verify: true,
+        message: `Denne fest er ${party.min_age}+. Verificér din alder med MitID for at deltage.`,
+      };
+    }
+  }
 
   // Host only: resolve the pending requesters' names for the approval list.
   let requestList: { userId: string; name: string }[] = [];
@@ -199,6 +267,27 @@ export default async function PartyDetailPage({
           {goingCount} kommer
           {party.capacity ? ` · ${party.capacity} pladser` : ""}
         </p>
+        <p className="flex items-center gap-2 text-zinc-400">
+          <Ticket size={16} className="shrink-0 text-zinc-400" />
+          {party.entre_dkk
+            ? `Entré: ${party.entre_dkk} kr. pr. person${
+                ticketFeeDkk() > 0 ? ` + ${ticketFeeDkk()} kr. gebyr` : ""
+              }`
+            : "Gratis"}
+        </p>
+        {party.min_age || party.gender_target ? (
+          <p className="flex items-center gap-2 text-zinc-400">
+            <ShieldCheck size={16} className="shrink-0 text-zinc-400" />
+            {[
+              party.min_age ? `${party.min_age}+ år` : null,
+              party.gender_target
+                ? `Kun ${GENDER_LABEL[party.gender_target] ?? "målgruppe"}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        ) : null}
         {!isHost && myRsvp !== "going" ? (
           <p className="mt-2 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-200">
             <Lock size={15} className="mt-0.5 shrink-0 text-amber-300" />
@@ -225,6 +314,11 @@ export default async function PartyDetailPage({
               Du er vært for denne fest.
             </p>
             <JoinRequests partyId={party.id} requests={requestList} />
+            <HostGroupRequests
+              partyId={party.id}
+              capacity={party.capacity}
+              goingCount={goingCount}
+            />
             <Link
               href={`/parties/${party.id}/edit`}
               className="btn-primary flex items-center justify-center gap-2"
@@ -243,12 +337,36 @@ export default async function PartyDetailPage({
           </div>
         ) : (
           <>
-            <p className="auth-label mb-2">Tag med?</p>
-            <RsvpButtons
-              partyId={party.id}
-              current={myRsvp}
-              request={(myRequest?.status as JoinRequestStatus | undefined) ?? null}
-            />
+            {joinBlock ? (
+              joinBlock.verify ? (
+                <VerifyAgeNotice
+                  href={verifyStartHref()}
+                  message={joinBlock.message}
+                />
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+                  {joinBlock.message}
+                </div>
+              )
+            ) : (
+              <>
+                <p className="auth-label mb-2">Tag med?</p>
+                <RsvpButtons
+                  partyId={party.id}
+                  current={myRsvp}
+                  request={
+                    (myRequest?.status as JoinRequestStatus | undefined) ?? null
+                  }
+                  entreDkk={party.entre_dkk}
+                  feeDkk={ticketFeeDkk()}
+                />
+                <GroupPanel
+                  partyId={party.id}
+                  entreDkk={party.entre_dkk}
+                  feeDkk={ticketFeeDkk()}
+                />
+              </>
+            )}
             {myThreadId ? (
               <Link
                 href={`/messages/${myThreadId}`}

@@ -32,6 +32,9 @@ export type PartyDefaults = {
   visibility?: "public" | "private" | null;
   venueType?: "own_place" | "public_spot" | null;
   capacity?: number | null;
+  entreDkk?: number | null;
+  minAge?: number | null;
+  genderTarget?: string | null;
 };
 
 /**
@@ -271,6 +274,56 @@ export function PartyForm({
             defaultValue={v?.capacity ?? defaults?.capacity ?? ""}
             className="auth-input"
           />
+        </label>
+      </div>
+
+      <label className="block">
+        <span className="auth-label">Entré pr. person i kr. (valgfri)</span>
+        <input
+          type="number"
+          name="entre_dkk"
+          min={0}
+          inputMode="numeric"
+          placeholder="Gratis"
+          defaultValue={v?.entre_dkk ?? defaults?.entreDkk ?? ""}
+          className="auth-input"
+        />
+        <span className="mt-1 block text-xs text-zinc-400">
+          Gæster betaler entréen, når de anmoder om at deltage — du får hele
+          beløbet udbetalt. Et evt. billetgebyr lægges oven i og betales af
+          gæsten.
+        </span>
+      </label>
+
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+        <label className="block">
+          <span className="auth-label">Mindstealder (valgfri)</span>
+          <input
+            type="number"
+            name="min_age"
+            min={0}
+            max={120}
+            inputMode="numeric"
+            placeholder="Ingen grænse"
+            defaultValue={v?.min_age ?? defaults?.minAge ?? ""}
+            className="auth-input"
+          />
+          <span className="mt-1 block text-xs text-zinc-400">
+            Kræver aldersverificering af gæsten.
+          </span>
+        </label>
+        <label className="block">
+          <span className="auth-label">Målgruppe (køn, valgfri)</span>
+          <select
+            name="gender_target"
+            defaultValue={v?.gender_target ?? defaults?.genderTarget ?? ""}
+            className="auth-input"
+          >
+            <option value="">Alle</option>
+            <option value="female">Kvinder</option>
+            <option value="male">Mænd</option>
+            <option value="other">Andet</option>
+          </select>
         </label>
       </div>
 

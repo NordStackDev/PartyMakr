@@ -17,6 +17,9 @@ type Party = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: number | null;
+  entre_dkk: number | null;
+  min_age: number | null;
+  gender_target: string | null;
   lon: number;
   lat: number;
 };
@@ -61,6 +64,9 @@ export default async function EditPartyPage({
             visibility: party.visibility,
             venueType: party.venue_type,
             capacity: party.capacity,
+            entreDkk: party.entre_dkk,
+            minAge: party.min_age,
+            genderTarget: party.gender_target,
           }}
           submitLabel="Gem ændringer"
           pendingLabel="Gemmer…"

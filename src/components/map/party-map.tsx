@@ -10,27 +10,17 @@ import {
   useRef,
   useState,
 } from "react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarDays,
-  LocateFixed,
-  Search,
-  Users,
-} from "lucide-react";
+import { LocateFixed, Search } from "lucide-react";
 import {
   MapContainer,
   TileLayer,
   Marker,
-  Popup,
   Circle,
   AttributionControl,
 } from "react-leaflet";
 
 import { createClient } from "@/lib/supabase/client";
 import { setMapApi } from "@/lib/map-controls";
-import { formatDistance, haversineM } from "@/lib/geo";
-import { fillFor, fmtDateTime } from "@/lib/party-display";
 import {
   lookupPostcode,
   reversePostcode,
@@ -48,6 +38,9 @@ export type NearbyParty = {
   ends_at: string | null;
   visibility: "public" | "private";
   capacity: number | null;
+  entre_dkk: number | null;
+  min_age: number | null;
+  gender_target: string | null;
   going_count: number;
   lon: number;
   lat: number;
@@ -74,15 +67,6 @@ const TILES = {
   },
 };
 
-function partyIcon(color: string) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:14px;height:14px;border-radius:9999px;background:${color};box-shadow:0 0 0 2px ${color}59,0 2px 6px rgba(0,0,0,.5)"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  });
-}
-
 // Postcode pin: a gold map pin showing how many parties the postcode holds.
 // The teardrop is a rotated square; the count sits in an unrotated overlay.
 function postcodePin(count: number) {
@@ -105,14 +89,9 @@ const meIcon = L.divIcon({
 });
 
 
-// Privacy: don't reveal a party's exact address on the discovery map. Each
-// party is drawn as an approximate area instead of a precise pin. The shown
-// centre is also nudged off the true point by a small, deterministic offset
-// (seeded by the party id) so the circle's centre isn't the real spot either —
-// stable across renders, but never exact.
-const AREA_RADIUS_M = 150; // size of the "somewhere around here" circle
-const MAX_OFFSET_M = 70; // how far the centre is nudged (always < radius)
-
+// Privacy: the discovery map never shows a party's exact spot — parties are
+// grouped onto their postcode's town centre and drawn as an approximate area
+// circle, so the real address never reaches the client.
 function areaStyle(color: string) {
   return {
     color,
@@ -121,25 +100,6 @@ function areaStyle(color: string) {
     fillColor: color,
     fillOpacity: 0.15,
   };
-}
-
-function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function fuzzedCenter(lat: number, lon: number, id: string): [number, number] {
-  const h = hashStr(id);
-  const angle = ((h % 360) * Math.PI) / 180;
-  const dist = (((h >>> 9) % 1000) / 1000) * MAX_OFFSET_M;
-  const dLat = (dist * Math.cos(angle)) / 111320;
-  const dLon =
-    (dist * Math.sin(angle)) / (111320 * Math.cos((lat * Math.PI) / 180));
-  return [lat + dLat, lon + dLon];
 }
 
 // Parties in the SAME POSTCODE render as one pin (with an area circle around
@@ -206,14 +166,6 @@ export default function PartyMap({
   );
   const [sheet, setSheet] = useState<PostcodeGroup | null>(null);
 
-  // Always the distance from the USER — parties may have been loaded around a
-  // searched postcode, whose RPC distance_m would mislead here.
-  const distFromMe = useCallback(
-    (p: NearbyParty) =>
-      me ? haversineM(me[0], me[1], p.lat, p.lon) : p.distance_m,
-    [me],
-  );
-
   // Resolve each party's postcode + each postcode's town centre (both cached
   // in lib/postcode, so revisits are instant and offline-safe).
   useEffect(() => {
@@ -243,17 +195,15 @@ export default function PartyMap({
     };
   }, [parties]);
 
-  // EVERY party renders inside its postcode's circle on the town — also when
-  // it's alone there (best privacy: the circle never narrows down the spot).
-  // Only parties whose postcode can't be resolved (lookup failed / outside
-  // DK) fall back to an individual fuzzed circle.
-  const { groups, singles } = useMemo(() => {
+  // EVERY party renders inside its postcode's circle on the town (best privacy:
+  // the circle never narrows down the spot). Parties whose postcode can't be
+  // resolved (lookup failed / outside DK) — or whose town centre hasn't loaded
+  // yet — are omitted from the map entirely rather than shown individually.
+  const groups = useMemo(() => {
     const byNr = new Map<string, NearbyParty[]>();
-    const singles: NearbyParty[] = [];
     for (const p of parties) {
       const nr = pcByParty[p.id]?.nr;
       if (nr) byNr.set(nr, [...(byNr.get(nr) ?? []), p]);
-      else singles.push(p);
     }
     const groups: PostcodeGroup[] = [];
     for (const [nr, list] of byNr) {
@@ -265,11 +215,9 @@ export default function PartyMap({
           center,
           parties: list,
         });
-      } else {
-        singles.push(...list);
       }
     }
-    return { groups, singles };
+    return groups;
   }, [parties, pcByParty, pcCenters]);
 
   const loadParties = useCallback(
@@ -365,8 +313,7 @@ export default function PartyMap({
     );
   }, [loadParties]);
 
-  // Jump to a Danish postcode's city and load the parties around it. The
-  // popups still show the distance from the user (see haversineM).
+  // Jump to a Danish postcode's city and load the parties around it.
   const searchPostcode = useCallback(
     async (value: string) => {
       const hit = await lookupPostcode(value);
@@ -447,75 +394,6 @@ export default function PartyMap({
           </Fragment>
         ))}
 
-        {singles.map((p) => {
-          const c = fuzzedCenter(p.lat, p.lon, p.id);
-          const going = p.going_count ?? 0;
-          const fill = fillFor(going, p.capacity);
-          return (
-            <Fragment key={p.id}>
-              {/* The whole area circle is the tap target (easy on a phone). */}
-              <Circle
-                center={c}
-                radius={AREA_RADIUS_M}
-                pathOptions={areaStyle(fill.color)}
-              >
-                <Popup>
-                  <div className="w-[13.5rem]">
-                    <p className="text-sm font-semibold leading-snug text-white">
-                      {p.title}
-                    </p>
-
-                    <div className="mt-2 flex items-center gap-2">
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                        style={{
-                          backgroundColor: `${fill.color}26`,
-                          color: fill.color,
-                        }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: fill.color }}
-                        />
-                        {fill.label}
-                      </span>
-                      <span className="text-[11px] text-zinc-400">
-                        {formatDistance(distFromMe(p))}
-                      </span>
-                    </div>
-
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-300">
-                      <CalendarDays size={13} className="text-amber-300" />
-                      {fmtDateTime(p.starts_at)}
-                    </p>
-                    {p.capacity ? (
-                      <p className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-400">
-                        <Users size={13} className="text-zinc-500" />
-                        {going}/{p.capacity} pladser · omtrentligt område
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-[11px] text-zinc-500">
-                        Omtrentligt område
-                      </p>
-                    )}
-
-                    <Link
-                      href={`/parties/${p.id}`}
-                      className="mt-3 flex items-center justify-center gap-1 rounded-full bg-[var(--brand)] px-3 py-2 text-xs font-semibold text-zinc-950 transition active:brightness-95"
-                    >
-                      Se fest <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </Popup>
-              </Circle>
-              <Marker
-                position={c}
-                icon={partyIcon(fill.color)}
-                interactive={false}
-              />
-            </Fragment>
-          );
-        })}
       </MapContainer>
 
       {/* Postcode search — jump the map to any Danish city. Stacked above the

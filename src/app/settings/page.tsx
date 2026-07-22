@@ -1,13 +1,26 @@
 import { redirect } from "next/navigation";
+import { Landmark, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { updateSettings } from "@/lib/profile/actions";
+import { updateSettings, verifyAgeStub } from "@/lib/profile/actions";
+import { iduraConfigured } from "@/lib/idura/client";
+import { connectStripePayouts, refreshPayoutStatus } from "@/lib/stripe/actions";
+import { stripeConfigured } from "@/lib/stripe/client";
 import { signOut } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { RadiusSlider } from "@/components/settings/radius-slider";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
 
-type SearchParams = Promise<{ saved?: string; error?: string }>;
+function ageFrom(dob: string): number {
+  const d = new Date(dob);
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+  return a;
+}
+
+type SearchParams = Promise<{ saved?: string; error?: string; stripe?: string }>;
 
 export default async function SettingsPage({
   searchParams,
@@ -20,14 +33,37 @@ export default async function SettingsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, username, bio, avatar_url, search_radius_km")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { saved, error, stripe } = await searchParams;
+  // Back from Stripe onboarding — sync the account status before rendering.
+  if (stripe === "retur") {
+    await refreshPayoutStatus(user.id);
+  }
 
-  const { saved, error } = await searchParams;
+  const [{ data: profile }, { data: ageRow }, { data: payout }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "display_name, username, bio, avatar_url, gender, search_radius_km",
+        )
+        .eq("id", user.id)
+        .maybeSingle(),
+      // RLS lets a user read only their own birthdate.
+      supabase
+        .from("profile_age")
+        .select("date_of_birth")
+        .eq("id", user.id)
+        .maybeSingle(),
+      // Owner-only RLS: the host's own Stripe Connect status.
+      supabase
+        .from("host_payout_accounts")
+        .select("charges_enabled, details_submitted")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+
   const radius = profile?.search_radius_km ?? 250;
+  const age = ageRow?.date_of_birth ? ageFrom(ageRow.date_of_birth) : null;
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
@@ -80,6 +116,20 @@ export default async function SettingsPage({
             />
           </label>
 
+          <label className="block">
+            <span className="auth-label">Køn</span>
+            <select
+              name="gender"
+              defaultValue={profile?.gender ?? ""}
+              className="auth-input"
+            >
+              <option value="">Vælg…</option>
+              <option value="female">Kvinde</option>
+              <option value="male">Mand</option>
+              <option value="other">Andet</option>
+            </select>
+          </label>
+
           <div className="border-t border-white/10 pt-4">
             <RadiusSlider name="search_radius_km" defaultValue={radius} />
           </div>
@@ -88,6 +138,80 @@ export default async function SettingsPage({
             Gem
           </SubmitButton>
         </form>
+
+        <div className="border-t border-white/10 pt-4">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+            <ShieldCheck size={16} className="text-amber-300" />
+            Aldersverifikation
+          </h3>
+          {age != null ? (
+            <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
+              <ShieldCheck size={15} />
+              Verificeret · {age} år
+            </p>
+          ) : iduraConfigured() ? (
+            <div className="mt-2 space-y-2">
+              <p className="text-xs text-zinc-400">
+                Verificér din alder med MitID for at kunne deltage i fester med
+                aldersgrænse.
+              </p>
+              <a
+                href="/api/verify/mitid/start"
+                className="btn-secondary inline-flex items-center gap-2"
+              >
+                <ShieldCheck size={16} />
+                Verificér med MitID
+              </a>
+            </div>
+          ) : (
+            <form action={verifyAgeStub} className="mt-2 space-y-2">
+              <p className="text-xs text-zinc-400">
+                Verificér din alder for at kunne deltage i fester med
+                aldersgrænse.
+              </p>
+              <input
+                type="date"
+                name="date_of_birth"
+                required
+                className="auth-input"
+                aria-label="Fødselsdato"
+              />
+              <SubmitButton className="btn-secondary" pendingText="Verificerer…">
+                Verificér alder (test)
+              </SubmitButton>
+              <p className="text-[11px] text-zinc-500">
+                Midlertidig test-verifikation. Rigtig MitID-verifikation kobles
+                på senere.
+              </p>
+            </form>
+          )}
+        </div>
+
+        {stripeConfigured() ? (
+          <div className="border-t border-white/10 pt-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Landmark size={16} className="text-amber-300" />
+              Udbetalinger
+            </h3>
+            {payout?.charges_enabled ? (
+              <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
+                <ShieldCheck size={15} />
+                Tilsluttet — du kan modtage entré-betalinger
+              </p>
+            ) : (
+              <form action={connectStripePayouts} className="mt-2 space-y-2">
+                <p className="text-xs text-zinc-400">
+                  {payout
+                    ? "Din tilslutning er ikke færdig endnu — fortsæt hos Stripe."
+                    : "Tilslut en udbetalingskonto (Stripe), så gæsternes entré går direkte til dig, når du holder fester med entré."}
+                </p>
+                <SubmitButton className="btn-secondary" pendingText="Åbner Stripe…">
+                  {payout ? "Fortsæt tilslutning" : "Tilslut udbetalinger"}
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <form action={signOut} className="mt-6">

@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  findGroupReference,
+  findSoloReference,
+  refundByReference,
+} from "@/lib/stripe/settle";
 
 export type RsvpStatus = "going" | "interested" | "maybe";
 
@@ -32,6 +37,9 @@ export type PartyFormValues = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: string;
+  entre_dkk: string;
+  min_age: string;
+  gender_target: string;
 };
 
 export type CreatePartyState = {
@@ -58,7 +66,15 @@ function readValues(formData: FormData): PartyFormValues {
     visibility: str(formData, "visibility") === "private" ? "private" : "public",
     venue_type: venueType(formData),
     capacity: str(formData, "capacity"),
+    entre_dkk: str(formData, "entre_dkk"),
+    min_age: str(formData, "min_age"),
+    gender_target: str(formData, "gender_target"),
   };
+}
+
+function genderTarget(formData: FormData): string | null {
+  const v = str(formData, "gender_target");
+  return v === "male" || v === "female" || v === "other" ? v : null;
 }
 
 /**
@@ -102,6 +118,8 @@ export async function createParty(
   }
 
   const capacityRaw = str(formData, "capacity").trim();
+  const entreRaw = str(formData, "entre_dkk").trim();
+  const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
 
   const { data, error } = await supabase.rpc("create_party", {
@@ -116,6 +134,9 @@ export async function createParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
+    p_entre_dkk: entreRaw ? Number(entreRaw) : null,
+    p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
+    p_gender_target: genderTarget(formData),
   });
 
   if (error || !data) {
@@ -165,6 +186,8 @@ export async function updateParty(
   }
 
   const capacityRaw = str(formData, "capacity").trim();
+  const entreRaw = str(formData, "entre_dkk").trim();
+  const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
 
   const { error } = await supabase.rpc("update_party", {
@@ -180,6 +203,9 @@ export async function updateParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
+    p_entre_dkk: entreRaw ? Number(entreRaw) : null,
+    p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
+    p_gender_target: genderTarget(formData),
   });
 
   if (error) {
@@ -244,7 +270,8 @@ export async function requestJoin(partyId: string) {
   revalidatePath(`/parties/${partyId}`);
 }
 
-/** Withdraw a join request (also clears a declined one so you can re-ask). */
+/** Withdraw a join request (also clears a declined one so you can re-ask).
+ * On a paid party the request was prepaid — withdrawing refunds the guest. */
 export async function cancelJoinRequest(partyId: string) {
   const supabase = await createClient();
   const {
@@ -261,10 +288,20 @@ export async function cancelJoinRequest(partyId: string) {
     throw new Error("Kunne ikke trække anmodningen tilbage.");
   }
 
+  try {
+    const ref = await findSoloReference(partyId, user.id);
+    if (ref) await refundByReference(ref);
+  } catch (e) {
+    // Refund is retryable (payment row stays 'completed') — don't lose the
+    // withdrawal over a transient Stripe error.
+    console.error("Refund on withdraw failed:", e);
+  }
+
   revalidatePath(`/parties/${partyId}`);
 }
 
-/** Host only: approve or decline a join request (enforced in the RPC). */
+/** Host only: approve or decline a join request (enforced in the RPC).
+ * Declining a prepaid guest triggers a full Stripe refund. */
 export async function respondJoinRequest(
   partyId: string,
   userId: string,
@@ -282,10 +319,148 @@ export async function respondJoinRequest(
     p_accept: accept,
   });
   if (error) {
-    throw new Error("Kunne ikke besvare anmodningen.");
+    throw new Error(error.message || "Kunne ikke besvare anmodningen.");
+  }
+
+  if (!accept) {
+    try {
+      const ref = await findSoloReference(partyId, userId);
+      if (ref) await refundByReference(ref);
+    } catch (e) {
+      console.error("Refund on decline failed:", e);
+    }
   }
 
   revalidatePath(`/parties/${partyId}`);
+}
+
+// ============================================================================
+// Group signup (00033–00035): a leader invites accepted friends, they accept,
+// the host approves the whole group (capacity enforced), and — for free parties
+// — everyone becomes 'going' immediately. Each wrapper returns the RPC's Danish
+// error text (e.g. the capacity message) so the UI can show it inline.
+// ============================================================================
+
+export type GroupActionResult = { error?: string };
+
+/** Leader: start a group for a party and invite accepted friends. */
+export async function createGroup(
+  partyId: string,
+  memberIds: string[],
+): Promise<GroupActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("create_group_with_invites", {
+    p_party_id: partyId,
+    p_member_ids: memberIds,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/parties/${partyId}`);
+  return {};
+}
+
+/** Invited friend: accept or decline a group invite. */
+export async function respondGroupInvite(
+  partyId: string,
+  groupId: string,
+  accept: boolean,
+): Promise<GroupActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("respond_group_invite", {
+    p_group_id: groupId,
+    p_accept: accept,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/parties/${partyId}`);
+  return {};
+}
+
+/** Leader: send the formed group to the host for approval. */
+export async function submitGroup(
+  partyId: string,
+  groupId: string,
+): Promise<GroupActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("submit_group", { p_group_id: groupId });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/parties/${partyId}`);
+  return {};
+}
+
+/** Host: approve or decline a submitted group. Approval enforces capacity and
+ * confirms every accepted member as 'going' (prepaid groups keep their money;
+ * declining a prepaid group refunds the leader in full). */
+export async function respondGroupRequest(
+  partyId: string,
+  groupId: string,
+  accept: boolean,
+): Promise<GroupActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("respond_group_request", {
+    p_group_id: groupId,
+    p_accept: accept,
+  });
+  if (error) return { error: error.message };
+
+  if (!accept) {
+    try {
+      const ref = await findGroupReference(groupId);
+      if (ref) await refundByReference(ref);
+    } catch (e) {
+      console.error("Refund on group decline failed:", e);
+    }
+  }
+
+  revalidatePath(`/parties/${partyId}`);
+  return {};
+}
+
+/** Leader: cancel the group before it's confirmed. A prepaid (submitted but
+ * not yet approved) group is refunded in full. */
+export async function cancelGroup(
+  partyId: string,
+  groupId: string,
+): Promise<GroupActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("cancel_group", { p_group_id: groupId });
+  if (error) return { error: error.message };
+
+  try {
+    const ref = await findGroupReference(groupId);
+    if (ref) await refundByReference(ref);
+  } catch (e) {
+    console.error("Refund on group cancel failed:", e);
+  }
+
+  revalidatePath(`/parties/${partyId}`);
+  return {};
 }
 
 /** Withdraw an RSVP / cancel attendance. Also clears any join request so the

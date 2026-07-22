@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import {
+  type ReactNode,
   useEffect,
+  useMemo,
   useState,
   useSyncExternalStore,
   useTransition,
 } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, Search, X } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { requestJoin } from "@/lib/parties/actions";
@@ -35,6 +37,57 @@ function fmtDay(value: string): string {
 /** My relationship to a party: attendee status and/or join-request status. */
 type Mine = { att?: string; req?: string };
 
+type DateSel = "all" | "today" | "weekend";
+
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const n = new Date();
+  return (
+    d.getFullYear() === n.getFullYear() &&
+    d.getMonth() === n.getMonth() &&
+    d.getDate() === n.getDate()
+  );
+}
+
+function isWeekend(iso: string): boolean {
+  const wd = new Date(iso).getDay();
+  return wd === 0 || wd === 6;
+}
+
+function hasRoom(p: NearbyParty): boolean {
+  if (!p.capacity || p.capacity <= 0) return true;
+  return (p.going_count ?? 0) < p.capacity;
+}
+
+// Below this many parties a postcode reads fine as a plain list — filters only
+// appear once it's big enough to get unwieldy (e.g. 8000 Aarhus C).
+const FILTER_THRESHOLD = 4;
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? "bg-[var(--brand)] text-zinc-950"
+          : "border border-white/15 bg-white/5 text-zinc-200 hover:bg-white/10"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 /**
  * Bottom sheet listing every party inside a tapped postcode circle, each with
  * the distance from the user (whole km, never below 1) and an inline
@@ -59,6 +112,12 @@ export function PartyClusterSheet({
     Record<string, { name: string; avatarUrl: string | null }>
   >({});
   const [pending, start] = useTransition();
+
+  // Search + quick filters (only surfaced for busy postcodes, see below).
+  const [query, setQuery] = useState("");
+  const [dateSel, setDateSel] = useState<DateSel>("all");
+  const [onlyFree, setOnlyFree] = useState(false);
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
   // Portal to <body> (same pattern as the help guide): rendered inside the
   // map subtree the sheet would stack UNDER the bottom nav and be clipped by
   // the phone-frame card. useSyncExternalStore gives false during SSR and
@@ -149,6 +208,33 @@ export function PartyClusterSheet({
     });
   }
 
+  const showFilters = parties.length > FILTER_THRESHOLD;
+  const q = query.trim().toLowerCase();
+  const filtersActive =
+    q !== "" || dateSel !== "all" || onlyFree || onlyAvailable;
+
+  // Filter then sort chronologically (soonest first).
+  const shown = useMemo(() => {
+    return [...parties]
+      .filter((p) => {
+        if (q) {
+          const host = hosts[p.host_id]?.name?.toLowerCase() ?? "";
+          if (!p.title.toLowerCase().includes(q) && !host.includes(q)) {
+            return false;
+          }
+        }
+        if (dateSel === "today" && !isToday(p.starts_at)) return false;
+        if (dateSel === "weekend" && !isWeekend(p.starts_at)) return false;
+        if (onlyFree && p.entre_dkk && p.entre_dkk > 0) return false;
+        if (onlyAvailable && !hasRoom(p)) return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
+      );
+  }, [parties, q, dateSel, onlyFree, onlyAvailable, hosts]);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -173,8 +259,10 @@ export function PartyClusterSheet({
               {navn} {nr}
             </h2>
             <p className="text-xs text-zinc-400">
-              {parties.length} {parties.length === 1 ? "fest" : "fester"} i
-              dette postnummer · omtrentligt område
+              {filtersActive
+                ? `${shown.length} af ${parties.length} fester`
+                : `${parties.length} ${parties.length === 1 ? "fest" : "fester"} i dette postnummer`}{" "}
+              · omtrentligt område
             </p>
           </div>
           <button
@@ -187,8 +275,69 @@ export function PartyClusterSheet({
           </button>
         </div>
 
+        {showFilters ? (
+          <div className="mt-3">
+            <div className="relative">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Søg efter fest eller vært"
+                aria-label="Søg i fester"
+                className="w-full rounded-full border border-white/12 bg-white/5 py-2 pl-9 pr-8 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-white/25"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Ryd søgning"
+                  className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-zinc-400 hover:bg-white/10"
+                >
+                  <X size={14} />
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
+              <FilterChip
+                active={dateSel === "today"}
+                onClick={() =>
+                  setDateSel((s) => (s === "today" ? "all" : "today"))
+                }
+              >
+                I dag
+              </FilterChip>
+              <FilterChip
+                active={dateSel === "weekend"}
+                onClick={() =>
+                  setDateSel((s) => (s === "weekend" ? "all" : "weekend"))
+                }
+              >
+                Weekend
+              </FilterChip>
+              <FilterChip active={onlyFree} onClick={() => setOnlyFree((f) => !f)}>
+                Gratis
+              </FilterChip>
+              <FilterChip
+                active={onlyAvailable}
+                onClick={() => setOnlyAvailable((a) => !a)}
+              >
+                Ledige pladser
+              </FilterChip>
+            </div>
+          </div>
+        ) : null}
+
+        {shown.length === 0 ? (
+          <p className="mt-6 text-center text-sm text-zinc-400">
+            Ingen fester matcher dine filtre.
+          </p>
+        ) : null}
+
         <ul className="mt-4 space-y-2.5">
-          {parties.map((p) => {
+          {shown.map((p) => {
             const fill = fillFor(p.going_count ?? 0, p.capacity);
             const m = mine[p.id];
             const isHost = uid != null && p.host_id === uid;
@@ -241,6 +390,11 @@ export function PartyClusterSheet({
                 ) : m?.req === "pending" ? (
                   <span className="shrink-0 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
                     Afventer svar
+                  </span>
+                ) : p.entre_dkk && p.entre_dkk > 0 ? (
+                  // Paid: joining + payment happens on the party page (row links).
+                  <span className="shrink-0 rounded-full bg-[var(--brand)]/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
+                    {p.entre_dkk} kr.
                   </span>
                 ) : (
                   <button

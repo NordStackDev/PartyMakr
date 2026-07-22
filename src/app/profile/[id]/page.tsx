@@ -15,8 +15,15 @@ type Profile = {
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  gender: string | null;
   created_at: string;
   verified: boolean;
+};
+
+const GENDER_LABEL: Record<string, string> = {
+  female: "Kvinde",
+  male: "Mand",
+  other: "Andet",
 };
 
 export default async function ProfilePage({
@@ -36,14 +43,22 @@ export default async function ProfilePage({
   if (!user) redirect("/login");
 
   // Din egen profil redigeres under Indstillinger — vis den bare her også.
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, display_name, username, avatar_url, bio, created_at, verified")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data }, { data: ageData }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "id, display_name, username, avatar_url, bio, gender, created_at, verified",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    // Age (not the birthdate) is exposed via a definer RPC.
+    supabase.rpc("get_profile_age", { p_id: id }),
+  ]);
   const profile = data as Profile | null;
   if (!profile) notFound();
 
+  const age = typeof ageData === "number" ? ageData : null;
+  const genderLabel = profile.gender ? GENDER_LABEL[profile.gender] : null;
   const name = profile.display_name || profile.username || "Bruger uden navn";
   const memberSince = new Date(profile.created_at).toLocaleDateString(
     "da-DK",
@@ -67,6 +82,14 @@ export default async function ProfilePage({
           <div className="mt-2">
             <VerifiedBadge withLabel />
           </div>
+        ) : null}
+
+        {age != null || genderLabel ? (
+          <p className="mt-3 text-sm text-zinc-200">
+            {[age != null ? `${age} år` : null, genderLabel]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         ) : null}
 
         {profile.bio ? (

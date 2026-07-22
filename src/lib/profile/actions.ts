@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function str(formData: FormData, key: string): string {
   const v = formData.get(key);
@@ -22,12 +23,19 @@ export async function updateSettings(formData: FormData) {
     Math.max(1, Math.round(Number(str(formData, "search_radius_km")) || 25)),
   );
 
+  const genderRaw = str(formData, "gender");
+  const gender =
+    genderRaw === "male" || genderRaw === "female" || genderRaw === "other"
+      ? genderRaw
+      : null;
+
   const { error } = await supabase
     .from("profiles")
     .update({
       display_name: str(formData, "display_name").trim() || null,
       username: str(formData, "username").trim() || null,
       bio: str(formData, "bio").trim() || null,
+      gender,
       search_radius_km: radius,
     })
     .eq("id", user.id);
@@ -41,6 +49,42 @@ export async function updateSettings(formData: FormData) {
   }
 
   revalidatePath("/dashboard");
+  redirect("/settings?saved=1");
+}
+
+/**
+ * DEV STUB for age verification. Records a verified birthdate directly, standing
+ * in for the real MitID (Criipto/Signicat) callback until that's wired up. The
+ * write goes through the service-role RPC set_verified_age (users can't set
+ * their own age). Swap the caller for the OIDC callback when the broker is live.
+ */
+export async function verifyAgeStub(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const dob = str(formData, "date_of_birth");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || Number.isNaN(Date.parse(dob))) {
+    redirect("/settings?error=" + encodeURIComponent("Ugyldig fødselsdato."));
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("set_verified_age", {
+    p_uid: user.id,
+    p_dob: dob,
+    p_method: "stub",
+  });
+  if (error) {
+    redirect(
+      "/settings?error=" +
+        encodeURIComponent("Kunne ikke verificere alderen."),
+    );
+  }
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${user.id}`);
   redirect("/settings?saved=1");
 }
 
