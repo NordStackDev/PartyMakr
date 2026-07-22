@@ -47,6 +47,7 @@ export function PartyForm({
   defaults,
   submitLabel,
   pendingLabel,
+  ticketPriceDkk = 0,
 }: {
   action: (
     state: CreatePartyState,
@@ -55,6 +56,8 @@ export function PartyForm({
   defaults?: PartyDefaults;
   submitLabel: string;
   pendingLabel: string;
+  /** The platform's uniform entré; 0 hides the paid-party option. */
+  ticketPriceDkk?: number;
 }) {
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(
     defaults?.lat != null && defaults?.lng != null
@@ -277,23 +280,28 @@ export function PartyForm({
         </label>
       </div>
 
-      <label className="block">
-        <span className="auth-label">Entré pr. person i kr. (valgfri)</span>
-        <input
-          type="number"
-          name="entre_dkk"
-          min={0}
-          inputMode="numeric"
-          placeholder="Gratis"
-          defaultValue={v?.entre_dkk ?? defaults?.entreDkk ?? ""}
-          className="auth-input"
-        />
-        <span className="mt-1 block text-xs text-zinc-400">
-          Gæster betaler entréen, når de anmoder om at deltage — du får hele
-          beløbet udbetalt. Et evt. billetgebyr lægges oven i og betales af
-          gæsten.
-        </span>
-      </label>
+      {ticketPriceDkk > 0 || (defaults?.entreDkk ?? 0) > 0 ? (
+        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+          <input
+            type="checkbox"
+            name="paid"
+            defaultChecked={
+              v ? v.paid === "on" : (defaults?.entreDkk ?? 0) > 0
+            }
+            className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium text-zinc-100">
+              Fest med entré ({defaults?.entreDkk ?? ticketPriceDkk} kr. pr.
+              person)
+            </span>
+            <span className="mt-0.5 block text-xs text-zinc-400">
+              Gæster betaler entréen, når de anmoder om at deltage. Prisen er
+              fastsat af PartyMakr.
+            </span>
+          </span>
+        </label>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">

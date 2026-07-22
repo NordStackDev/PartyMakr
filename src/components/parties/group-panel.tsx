@@ -57,11 +57,9 @@ const STATUS_BADGE: Record<MemberStatus, { label: string; cls: string }> = {
 export function GroupPanel({
   partyId,
   entreDkk,
-  feeDkk = 0,
 }: {
   partyId: string;
   entreDkk: number | null;
-  feeDkk?: number;
 }) {
   const [uid, setUid] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
@@ -259,8 +257,8 @@ export function GroupPanel({
   const acceptedCount = group.members.filter(
     (m) => m.status === "accepted",
   ).length;
-  // Total the leader pays: (entré + billetgebyr) × accepted members.
-  const total = ((entreDkk ?? 0) + feeDkk) * acceptedCount;
+  // Total the leader pays: entré × accepted members.
+  const total = (entreDkk ?? 0) * acceptedCount;
   const leaderName =
     group.members.find((m) => m.userId === group.leaderId)?.name ?? "Lederen";
 
@@ -355,9 +353,7 @@ export function GroupPanel({
         <p className="mt-1 text-xs text-zinc-400">
           Afventer at dine venner accepterer invitationen.
           {entreDkk && entreDkk > 0
-            ? ` Du betaler ${entreDkk + feeDkk} kr. pr. deltager${
-                feeDkk > 0 ? ` (inkl. ${feeDkk} kr. gebyr)` : ""
-              }, når gruppen sendes til værten.`
+            ? ` Du betaler ${entreDkk} kr. pr. deltager, når gruppen sendes til værten.`
             : ""}
         </p>
       ) : null}

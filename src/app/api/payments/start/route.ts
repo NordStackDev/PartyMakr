@@ -2,19 +2,15 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  createCheckoutSession,
-  stripeConfigured,
-  ticketFeeDkk,
-} from "@/lib/stripe/client";
+import { createCheckoutSession, stripeConfigured } from "@/lib/stripe/client";
 import { getSiteURL } from "@/lib/site-url";
 
 /**
- * Start a Stripe Checkout — pay-at-request. Solo (no `groupId`): the guest pays
- * to file their join request. Group (`groupId`): the leader pays to submit the
- * group to the host. The RPCs validate eligibility and record the pending
- * payment with the authoritative amount; the entré is a destination charge to
- * the host's connected account.
+ * Start a Stripe Checkout — pay-at-request, collected by the platform. Solo
+ * (no `groupId`): the guest pays to file their join request. Group
+ * (`groupId`): the leader pays to submit the group to the host. The RPCs
+ * validate eligibility and record the pending payment with the authoritative
+ * amount (the party's frozen ticket price × persons).
  */
 export async function POST(req: Request) {
   let partyId: string | undefined;
@@ -61,43 +57,23 @@ export async function POST(req: Request) {
     );
   }
 
-  // The host's connected account receives the entré (owner-only RLS, so the
-  // lookup goes through the admin client).
   const admin = createAdminClient();
   const { data: party } = await admin
     .from("parties")
-    .select("host_id, title, entre_dkk")
+    .select("title, entre_dkk")
     .eq("id", partyId)
     .maybeSingle();
-  const { data: payout } = party
-    ? await admin
-        .from("host_payout_accounts")
-        .select("stripe_account_id, charges_enabled")
-        .eq("id", party.host_id)
-        .maybeSingle()
-    : { data: null };
-  if (!payout?.charges_enabled) {
-    return NextResponse.json(
-      { error: "Værten kan ikke modtage betalinger endnu." },
-      { status: 409 },
-    );
-  }
 
-  // Danish-style billetgebyr, per ticket. Persons = the RPC's authoritative
-  // amount divided by the entré price (exact by construction).
   const persons =
     party?.entre_dkk && party.entre_dkk > 0
       ? Math.max(1, Math.round(intent.amount_dkk / party.entre_dkk))
       : 1;
-  const feeDkk = ticketFeeDkk() * persons;
 
   const base = getSiteURL();
   try {
     const session = await createCheckoutSession({
       reference: intent.reference,
       amountDkk: intent.amount_dkk,
-      feeDkk,
-      hostAccountId: payout.stripe_account_id,
       description:
         persons > 1
           ? `Entré × ${persons} · ${party?.title ?? "PartyMakr"}`
@@ -111,11 +87,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // Session id in provider_ref until settled (then it becomes the intent
-    // id); the fee is recorded so settling can verify the charged total.
+    // Session id in provider_ref until settled (then it becomes the intent id).
     await admin
       .from("party_payments")
-      .update({ provider_ref: session.id, fee_dkk: feeDkk })
+      .update({ provider_ref: session.id })
       .eq("reference", intent.reference);
 
     return NextResponse.json({ checkout: session.url });

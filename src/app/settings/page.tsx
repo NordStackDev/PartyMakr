@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import { Landmark, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { updateSettings, verifyAgeStub } from "@/lib/profile/actions";
 import { iduraConfigured } from "@/lib/idura/client";
-import { connectStripePayouts, refreshPayoutStatus } from "@/lib/stripe/actions";
-import { stripeConfigured } from "@/lib/stripe/client";
 import { signOut } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { RadiusSlider } from "@/components/settings/radius-slider";
@@ -20,7 +18,7 @@ function ageFrom(dob: string): number {
   return a;
 }
 
-type SearchParams = Promise<{ saved?: string; error?: string; stripe?: string }>;
+type SearchParams = Promise<{ saved?: string; error?: string }>;
 
 export default async function SettingsPage({
   searchParams,
@@ -33,34 +31,23 @@ export default async function SettingsPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { saved, error, stripe } = await searchParams;
-  // Back from Stripe onboarding — sync the account status before rendering.
-  if (stripe === "retur") {
-    await refreshPayoutStatus(user.id);
-  }
+  const { saved, error } = await searchParams;
 
-  const [{ data: profile }, { data: ageRow }, { data: payout }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select(
-          "display_name, username, bio, avatar_url, gender, search_radius_km",
-        )
-        .eq("id", user.id)
-        .maybeSingle(),
-      // RLS lets a user read only their own birthdate.
-      supabase
-        .from("profile_age")
-        .select("date_of_birth")
-        .eq("id", user.id)
-        .maybeSingle(),
-      // Owner-only RLS: the host's own Stripe Connect status.
-      supabase
-        .from("host_payout_accounts")
-        .select("charges_enabled, details_submitted")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
+  const [{ data: profile }, { data: ageRow }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "display_name, username, bio, avatar_url, gender, search_radius_km",
+      )
+      .eq("id", user.id)
+      .maybeSingle(),
+    // RLS lets a user read only their own birthdate.
+    supabase
+      .from("profile_age")
+      .select("date_of_birth")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
 
   const radius = profile?.search_radius_km ?? 250;
   const age = ageRow?.date_of_birth ? ageFrom(ageRow.date_of_birth) : null;
@@ -187,31 +174,6 @@ export default async function SettingsPage({
           )}
         </div>
 
-        {stripeConfigured() ? (
-          <div className="border-t border-white/10 pt-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Landmark size={16} className="text-amber-300" />
-              Udbetalinger
-            </h3>
-            {payout?.charges_enabled ? (
-              <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
-                <ShieldCheck size={15} />
-                Tilsluttet — du kan modtage entré-betalinger
-              </p>
-            ) : (
-              <form action={connectStripePayouts} className="mt-2 space-y-2">
-                <p className="text-xs text-zinc-400">
-                  {payout
-                    ? "Din tilslutning er ikke færdig endnu — fortsæt hos Stripe."
-                    : "Tilslut en udbetalingskonto (Stripe), så gæsternes entré går direkte til dig, når du holder fester med entré."}
-                </p>
-                <SubmitButton className="btn-secondary" pendingText="Åbner Stripe…">
-                  {payout ? "Fortsæt tilslutning" : "Tilslut udbetalinger"}
-                </SubmitButton>
-              </form>
-            )}
-          </div>
-        ) : null}
       </section>
 
       <form action={signOut} className="mt-6">

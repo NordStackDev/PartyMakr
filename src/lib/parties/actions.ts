@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { ticketPriceDkk } from "@/lib/stripe/client";
 import {
   findGroupReference,
   findSoloReference,
@@ -37,7 +38,8 @@ export type PartyFormValues = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: string;
-  entre_dkk: string;
+  /** "on" when the paid-party checkbox is ticked (price is platform-set). */
+  paid: string;
   min_age: string;
   gender_target: string;
 };
@@ -66,7 +68,7 @@ function readValues(formData: FormData): PartyFormValues {
     visibility: str(formData, "visibility") === "private" ? "private" : "public",
     venue_type: venueType(formData),
     capacity: str(formData, "capacity"),
-    entre_dkk: str(formData, "entre_dkk"),
+    paid: str(formData, "paid"),
     min_age: str(formData, "min_age"),
     gender_target: str(formData, "gender_target"),
   };
@@ -118,9 +120,12 @@ export async function createParty(
   }
 
   const capacityRaw = str(formData, "capacity").trim();
-  const entreRaw = str(formData, "entre_dkk").trim();
   const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
+  // Paid party: the price is the platform's uniform ticket price (env), frozen
+  // into the row — never a client-supplied amount.
+  const paid = str(formData, "paid") === "on";
+  const price = ticketPriceDkk();
 
   const { data, error } = await supabase.rpc("create_party", {
     p_title: title,
@@ -134,7 +139,7 @@ export async function createParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
-    p_entre_dkk: entreRaw ? Number(entreRaw) : null,
+    p_entre_dkk: paid && price > 0 ? price : null,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
   });
@@ -186,9 +191,20 @@ export async function updateParty(
   }
 
   const capacityRaw = str(formData, "capacity").trim();
-  const entreRaw = str(formData, "entre_dkk").trim();
   const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
+  // Keep the party's frozen price when it was already paid; otherwise use the
+  // current platform price. Never a client-supplied amount.
+  const paid = str(formData, "paid") === "on";
+  const { data: existing } = await supabase
+    .from("parties")
+    .select("entre_dkk")
+    .eq("id", partyId)
+    .maybeSingle();
+  const price =
+    existing?.entre_dkk && existing.entre_dkk > 0
+      ? existing.entre_dkk
+      : ticketPriceDkk();
 
   const { error } = await supabase.rpc("update_party", {
     p_id: partyId,
@@ -203,7 +219,7 @@ export async function updateParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
-    p_entre_dkk: entreRaw ? Number(entreRaw) : null,
+    p_entre_dkk: paid && price > 0 ? price : null,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
   });

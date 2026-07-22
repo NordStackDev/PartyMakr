@@ -20,19 +20,17 @@ export function RsvpButtons({
   current,
   request,
   entreDkk,
-  feeDkk = 0,
 }: {
   partyId: string;
   current: RsvpStatus | null;
   request: JoinRequestStatus | null;
   entreDkk: number | null;
-  feeDkk?: number;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const going = current === "going";
   const isPaid = (entreDkk ?? 0) > 0;
-  const totalDkk = (entreDkk ?? 0) + (isPaid ? feeDkk : 0);
+  const totalDkk = entreDkk ?? 0;
 
   // Paid party: request + pay in one step via Stripe Checkout.
   function payAndRequest() {
@@ -123,9 +121,6 @@ export function RsvpButtons({
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
       {isPaid && !going && request !== "pending" ? (
         <p className="text-xs text-zinc-400">
-          {feeDkk > 0
-            ? `Entré ${entreDkk} kr. + ${feeDkk} kr. billetgebyr. `
-            : ""}
           Du betaler nu og får pladsen, når værten godkender. Afviser værten,
           refunderes hele beløbet automatisk.
         </p>

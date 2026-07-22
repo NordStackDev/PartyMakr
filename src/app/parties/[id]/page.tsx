@@ -26,7 +26,6 @@ import { HostGroupRequests } from "@/components/parties/host-group-requests";
 import { GroupPanel } from "@/components/parties/group-panel";
 import { VerifyAgeNotice } from "@/components/parties/verify-age-notice";
 import { reconcileByReference } from "@/lib/stripe/settle";
-import { ticketFeeDkk } from "@/lib/stripe/client";
 import { verifyStartHref } from "@/lib/idura/client";
 import { ageFromDob } from "@/lib/age";
 import { ConfirmButton } from "@/components/friends/confirm-button";
@@ -270,9 +269,7 @@ export default async function PartyDetailPage({
         <p className="flex items-center gap-2 text-zinc-400">
           <Ticket size={16} className="shrink-0 text-zinc-400" />
           {party.entre_dkk
-            ? `Entré: ${party.entre_dkk} kr. pr. person${
-                ticketFeeDkk() > 0 ? ` + ${ticketFeeDkk()} kr. gebyr` : ""
-              }`
+            ? `Entré: ${party.entre_dkk} kr. pr. person`
             : "Gratis"}
         </p>
         {party.min_age || party.gender_target ? (
@@ -358,13 +355,8 @@ export default async function PartyDetailPage({
                     (myRequest?.status as JoinRequestStatus | undefined) ?? null
                   }
                   entreDkk={party.entre_dkk}
-                  feeDkk={ticketFeeDkk()}
                 />
-                <GroupPanel
-                  partyId={party.id}
-                  entreDkk={party.entre_dkk}
-                  feeDkk={ticketFeeDkk()}
-                />
+                <GroupPanel partyId={party.id} entreDkk={party.entre_dkk} />
               </>
             )}
             {myThreadId ? (

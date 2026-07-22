@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { updateParty } from "@/lib/parties/actions";
+import { ticketPriceDkk } from "@/lib/stripe/client";
 import { PartyForm } from "@/components/parties/party-form";
 
 type Party = {
@@ -70,6 +71,7 @@ export default async function EditPartyPage({
           }}
           submitLabel="Gem ændringer"
           pendingLabel="Gemmer…"
+          ticketPriceDkk={ticketPriceDkk()}
         />
       </div>
     </main>
