@@ -7,6 +7,7 @@ import {
   decodeIdToken,
   exchangeCode,
 } from "@/lib/idura/client";
+import { getSiteURL } from "@/lib/site-url";
 
 function clearCookies(res: NextResponse): NextResponse {
   const opts = { path: "/api/verify/mitid", maxAge: 0 };
@@ -21,7 +22,7 @@ function clearCookies(res: NextResponse): NextResponse {
  * service-role RPC. The birthdate never reaches the browser.
  */
 export async function GET(req: NextRequest) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const base = getSiteURL();
   const done = (msg?: string) =>
     clearCookies(
       NextResponse.redirect(

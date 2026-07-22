@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSiteURL } from "@/lib/site-url";
 import {
   createExpressAccount,
   createOnboardingLink,
@@ -47,8 +48,7 @@ export async function connectStripePayouts() {
       });
     }
 
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const returnUrl = `${base}/settings?stripe=retur`;
+    const returnUrl = `${getSiteURL()}/settings?stripe=retur`;
     try {
       url = await createOnboardingLink(accountId, returnUrl, returnUrl);
     } catch (e) {

@@ -7,6 +7,7 @@ import {
   stripeConfigured,
   ticketFeeDkk,
 } from "@/lib/stripe/client";
+import { getSiteURL } from "@/lib/site-url";
 
 /**
  * Start a Stripe Checkout — pay-at-request. Solo (no `groupId`): the guest pays
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
       : 1;
   const feeDkk = ticketFeeDkk() * persons;
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const base = getSiteURL();
   try {
     const session = await createCheckoutSession({
       reference: intent.reference,

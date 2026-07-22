@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { buildAuthorizeUrl, iduraConfigured } from "@/lib/idura/client";
+import { getSiteURL } from "@/lib/site-url";
 
 /**
  * Begin MitID age verification: stash a state + nonce in short-lived cookies
@@ -9,7 +10,7 @@ import { buildAuthorizeUrl, iduraConfigured } from "@/lib/idura/client";
  * to /api/verify/mitid/callback.
  */
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const base = getSiteURL();
 
   if (!iduraConfigured()) {
     return NextResponse.redirect(
