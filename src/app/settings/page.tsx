@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 import { Landmark, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { updateSettings, verifyAgeStub } from "@/lib/profile/actions";
+import {
+  removeAgeVerification,
+  updateSettings,
+  verifyAgeStub,
+} from "@/lib/profile/actions";
+import { ConfirmButton } from "@/components/friends/confirm-button";
 import { iduraConfigured } from "@/lib/idura/client";
 import { connectStripePayouts, refreshPayoutStatus } from "@/lib/stripe/actions";
 import { stripeConfigured } from "@/lib/stripe/client";
@@ -148,10 +153,19 @@ export default async function SettingsPage({
             Aldersverifikation
           </h3>
           {age != null ? (
-            <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
-              <ShieldCheck size={15} />
-              Verificeret · {age} år
-            </p>
+            <div className="mt-2 space-y-2">
+              <p className="flex items-center gap-2 text-sm text-emerald-300">
+                <ShieldCheck size={15} />
+                Verificeret · {age} år
+              </p>
+              <ConfirmButton
+                action={removeAgeVerification}
+                confirm="Er du sikker på, at du vil fjerne din aldersverifikation? Din fødselsdato slettes, og du kan ikke oprette fester eller deltage i 18+-fester, før du verificerer igen."
+                className="text-xs font-semibold text-zinc-400 hover:text-red-300"
+              >
+                Fjern verifikation
+              </ConfirmButton>
+            </div>
           ) : iduraConfigured() ? (
             <div className="mt-2 space-y-2">
               <p className="text-xs text-zinc-400">

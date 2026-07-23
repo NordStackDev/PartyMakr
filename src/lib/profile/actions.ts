@@ -89,6 +89,31 @@ export async function verifyAgeStub(formData: FormData) {
 }
 
 /**
+ * Remove the user's age verification again (GDPR erasure). Deletes the stored
+ * birthdate and clears the verified badge (when it came from age
+ * verification). The 18+ gates re-apply until they verify anew.
+ */
+export async function removeAgeVerification() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("remove_verified_age");
+  if (error) {
+    redirect(
+      "/settings?error=" +
+        encodeURIComponent("Kunne ikke fjerne verifikationen."),
+    );
+  }
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${user.id}`);
+  redirect("/settings?saved=1");
+}
+
+/**
  * Mark the first-time help guide as seen so it won't auto-open again. Called
  * when the user closes the guide the first time. No redirect/revalidate — it's
  * a fire-and-forget background write from the client.
