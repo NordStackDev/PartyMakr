@@ -3,6 +3,7 @@ import "server-only";
 import type Stripe from "stripe";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { claimWindowDays } from "@/lib/payments/mode";
 import { getSession, refundPaymentIntent } from "./client";
 
 /**
@@ -26,7 +27,7 @@ export async function settleCheckoutSession(
   const admin = createAdminClient();
   const { data: pay } = await admin
     .from("party_payments")
-    .select("group_id, amount_dkk, fee_dkk, status")
+    .select("group_id, party_id, amount_dkk, fee_dkk, host_amount_dkk, status")
     .eq("reference", reference)
     .maybeSingle();
   if (!pay || pay.status === "completed") return;
@@ -51,6 +52,30 @@ export async function settleCheckoutSession(
   if (outcome === "capacity_full") {
     // Seats filled while the guest was checking out — money back right away.
     await refundPaymentIntent(paymentIntent);
+    return;
+  }
+
+  // Marketplace escrow: the host's share (frozen on the row at charge time) is
+  // held until the party has been held plus the claim window, then released by
+  // the payout job. Platform mode leaves host_amount at 0 and skips this.
+  if (outcome === "paid" && Number(pay.host_amount_dkk ?? 0) > 0) {
+    const { data: party } = await admin
+      .from("parties")
+      .select("starts_at, ends_at")
+      .eq("id", pay.party_id)
+      .maybeSingle();
+    const heldAt = party?.ends_at
+      ? new Date(party.ends_at)
+      : party?.starts_at
+        ? new Date(new Date(party.starts_at).getTime() + 6 * 3600_000)
+        : new Date();
+    const dueAt = new Date(
+      heldAt.getTime() + claimWindowDays() * 24 * 3600_000,
+    );
+    await admin
+      .from("party_payments")
+      .update({ payout_status: "held", payout_due_at: dueAt.toISOString() })
+      .eq("reference", reference);
   }
 }
 
@@ -100,6 +125,35 @@ export async function refundByReference(reference: string): Promise<void> {
 
   await refundPaymentIntent(paymentIntent);
   await admin.rpc("mark_payment_refunded", { p_reference: reference });
+  // Escrow bookkeeping: a refunded payment must never be paid out to the host.
+  await admin
+    .from("party_payments")
+    .update({ payout_status: "refunded" })
+    .eq("reference", reference)
+    .neq("payout_status", "na");
+}
+
+/** Cancellation sweep: refund every completed payment on a party (before it is
+ * deleted, so the payment rows still exist). Escrow money is still on the
+ * platform balance, so refunds always succeed; released payouts (post-event)
+ * are skipped — that money is already with the host. */
+export async function refundAllPartyPayments(partyId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: payments } = await admin
+    .from("party_payments")
+    .select("reference, payout_status")
+    .eq("party_id", partyId)
+    .eq("status", "completed");
+
+  for (const pay of payments ?? []) {
+    if (pay.payout_status === "released") continue;
+    try {
+      await refundByReference(pay.reference);
+    } catch (e) {
+      // Retryable — the payment row stays 'completed' for a manual sweep.
+      console.error(`Cancel refund failed for ${pay.reference}:`, e);
+    }
+  }
 }
 
 /** Find the settled payment reference for a solo guest on a party (to refund). */

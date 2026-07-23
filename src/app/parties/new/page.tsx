@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createParty } from "@/lib/parties/actions";
 import { ticketPriceDkk } from "@/lib/stripe/client";
+import { isMarketplace } from "@/lib/payments/mode";
 import { verifyStartHref } from "@/lib/idura/client";
 import { ageFromDob } from "@/lib/age";
 import { PartyForm } from "@/components/parties/party-form";
@@ -39,6 +40,7 @@ export default async function NewPartyPage() {
             submitLabel="Opret fest"
             pendingLabel="Opretter…"
             ticketPriceDkk={ticketPriceDkk()}
+            marketplace={isMarketplace()}
           />
         ) : (
           <VerifyAgeNotice

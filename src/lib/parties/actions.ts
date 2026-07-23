@@ -5,9 +5,11 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { ticketPriceDkk } from "@/lib/stripe/client";
+import { isMarketplace } from "@/lib/payments/mode";
 import {
   findGroupReference,
   findSoloReference,
+  refundAllPartyPayments,
   refundByReference,
 } from "@/lib/stripe/settle";
 
@@ -38,8 +40,10 @@ export type PartyFormValues = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: string;
-  /** "on" when the paid-party checkbox is ticked (price is platform-set). */
+  /** Platform mode: "on" when the paid-party checkbox is ticked. */
   paid: string;
+  /** Marketplace mode: the host's own ticket price. */
+  entre_dkk: string;
   min_age: string;
   gender_target: string;
 };
@@ -69,9 +73,22 @@ function readValues(formData: FormData): PartyFormValues {
     venue_type: venueType(formData),
     capacity: str(formData, "capacity"),
     paid: str(formData, "paid"),
+    entre_dkk: str(formData, "entre_dkk"),
     min_age: str(formData, "min_age"),
     gender_target: str(formData, "gender_target"),
   };
+}
+
+/** The party's price. Platform mode: checkbox + the platform's uniform price
+ * (never client-supplied). Marketplace mode: the host's own ticket price. */
+function resolvePrice(formData: FormData): number | null {
+  if (isMarketplace()) {
+    const raw = Number(str(formData, "entre_dkk").trim());
+    return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
+  }
+  const paid = str(formData, "paid") === "on";
+  const price = ticketPriceDkk();
+  return paid && price > 0 ? price : null;
 }
 
 function genderTarget(formData: FormData): string | null {
@@ -122,10 +139,7 @@ export async function createParty(
   const capacityRaw = str(formData, "capacity").trim();
   const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
-  // Paid party: the price is the platform's uniform ticket price (env), frozen
-  // into the row — never a client-supplied amount.
-  const paid = str(formData, "paid") === "on";
-  const price = ticketPriceDkk();
+  const price = resolvePrice(formData);
 
   const { data, error } = await supabase.rpc("create_party", {
     p_title: title,
@@ -139,7 +153,7 @@ export async function createParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
-    p_entre_dkk: paid && price > 0 ? price : null,
+    p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
   });
@@ -193,18 +207,19 @@ export async function updateParty(
   const capacityRaw = str(formData, "capacity").trim();
   const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
-  // Keep the party's frozen price when it was already paid; otherwise use the
-  // current platform price. Never a client-supplied amount.
-  const paid = str(formData, "paid") === "on";
-  const { data: existing } = await supabase
-    .from("parties")
-    .select("entre_dkk")
-    .eq("id", partyId)
-    .maybeSingle();
-  const price =
-    existing?.entre_dkk && existing.entre_dkk > 0
-      ? existing.entre_dkk
-      : ticketPriceDkk();
+  // Platform mode keeps the party's frozen platform price if it already had
+  // one; marketplace mode takes the host's own price from the form.
+  let price = resolvePrice(formData);
+  if (!isMarketplace() && price != null) {
+    const { data: existing } = await supabase
+      .from("parties")
+      .select("entre_dkk")
+      .eq("id", partyId)
+      .maybeSingle();
+    if (existing?.entre_dkk && existing.entre_dkk > 0) {
+      price = existing.entre_dkk;
+    }
+  }
 
   const { error } = await supabase.rpc("update_party", {
     p_id: partyId,
@@ -219,7 +234,7 @@ export async function updateParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityRaw ? Number(capacityRaw) : null,
-    p_entre_dkk: paid && price > 0 ? price : null,
+    p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
   });
@@ -236,14 +251,30 @@ export async function updateParty(
   redirect(`/parties/${partyId}`);
 }
 
-/** Delete (cancel) a party — host only, enforced by RLS. Cascades clean up
- * invites, attendees, requests and chat; a DB trigger notifies the guests. */
+/** Delete (cancel) a party — host only, enforced by RLS. All completed entré
+ * payments are refunded FIRST (guests must never lose money to a cancelled
+ * party — in escrow mode the funds are still on the platform, so this always
+ * succeeds). Cascades then clean up invites, attendees, requests and chat; a
+ * DB trigger notifies the guests. */
 export async function deleteParty(partyId: string) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Verify the caller is the host before touching payments (RLS enforces the
+  // delete itself, but the refund sweep runs with the service role).
+  const { data: party } = await supabase
+    .from("parties")
+    .select("host_id")
+    .eq("id", partyId)
+    .maybeSingle();
+  if (!party || party.host_id !== user.id) {
+    throw new Error("Festen kunne ikke slettes.");
+  }
+
+  await refundAllPartyPayments(partyId);
 
   const { error } = await supabase
     .from("parties")
@@ -477,6 +508,29 @@ export async function cancelGroup(
 
   revalidatePath(`/parties/${partyId}`);
   return {};
+}
+
+/** Marketplace escrow: a going, paid guest reports that the party never
+ * happened. RLS enforces attendee+started; an open claim blocks the host's
+ * payout until it is resolved. */
+export async function filePartyClaim(partyId: string, reason: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.from("party_claims").insert({
+    party_id: partyId,
+    user_id: user.id,
+    reason: reason.trim() || null,
+  });
+  // 23505 = already claimed — treat as success.
+  if (error && error.code !== "23505") {
+    throw new Error("Kunne ikke indsende anmeldelsen.");
+  }
+
+  revalidatePath(`/parties/${partyId}`);
 }
 
 /** Withdraw an RSVP / cancel attendance. Also clears any join request so the

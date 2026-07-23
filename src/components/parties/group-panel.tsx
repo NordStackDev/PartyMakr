@@ -57,9 +57,12 @@ const STATUS_BADGE: Record<MemberStatus, { label: string; cls: string }> = {
 export function GroupPanel({
   partyId,
   entreDkk,
+  feeDkk = 0,
 }: {
   partyId: string;
   entreDkk: number | null;
+  /** Marketplace mode: the platform fee per ticket on top of the price. */
+  feeDkk?: number;
 }) {
   const [uid, setUid] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
@@ -257,8 +260,8 @@ export function GroupPanel({
   const acceptedCount = group.members.filter(
     (m) => m.status === "accepted",
   ).length;
-  // Total the leader pays: entré × accepted members.
-  const total = (entreDkk ?? 0) * acceptedCount;
+  // Total the leader pays: (entré + evt. platformgebyr) × accepted members.
+  const total = ((entreDkk ?? 0) + feeDkk) * acceptedCount;
   const leaderName =
     group.members.find((m) => m.userId === group.leaderId)?.name ?? "Lederen";
 

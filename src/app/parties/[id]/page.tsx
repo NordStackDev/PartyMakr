@@ -26,6 +26,8 @@ import { HostGroupRequests } from "@/components/parties/host-group-requests";
 import { GroupPanel } from "@/components/parties/group-panel";
 import { VerifyAgeNotice } from "@/components/parties/verify-age-notice";
 import { reconcileByReference } from "@/lib/stripe/settle";
+import { isMarketplace, platformFeeDkk } from "@/lib/payments/mode";
+import { ClaimButton } from "@/components/parties/claim-button";
 import { verifyStartHref } from "@/lib/idura/client";
 import { ageFromDob } from "@/lib/age";
 import { ConfirmButton } from "@/components/friends/confirm-button";
@@ -140,6 +142,25 @@ export default async function PartyDetailPage({
     (rows2.find((a) => a.user_id === user.id)?.status as RsvpStatus | undefined) ??
     null;
   const hostName = host?.display_name || host?.username || "en vært";
+
+  // Marketplace escrow: a paid, going guest can report a no-show once the
+  // party should have started (an open claim pauses the host's payout).
+  let claimState: { claimed: boolean } | null = null;
+  if (
+    isMarketplace() &&
+    !isHost &&
+    myRsvp === "going" &&
+    party.entre_dkk &&
+    new Date(party.starts_at) < new Date()
+  ) {
+    const { data: myClaim } = await supabase
+      .from("party_claims")
+      .select("status")
+      .eq("party_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    claimState = { claimed: Boolean(myClaim) };
+  }
 
   // Just-in-time gate: if this party restricts age/gender and the viewer isn't
   // going yet, work out whether they can join — or must verify with MitID.
@@ -269,7 +290,11 @@ export default async function PartyDetailPage({
         <p className="flex items-center gap-2 text-zinc-400">
           <Ticket size={16} className="shrink-0 text-zinc-400" />
           {party.entre_dkk
-            ? `Entré: ${party.entre_dkk} kr. pr. person`
+            ? `${isMarketplace() ? "Billet" : "Entré"}: ${party.entre_dkk} kr. pr. person${
+                platformFeeDkk() > 0
+                  ? ` + ${platformFeeDkk()} kr. platformgebyr`
+                  : ""
+              }`
             : "Gratis"}
         </p>
         {party.min_age || party.gender_target ? (
@@ -355,10 +380,18 @@ export default async function PartyDetailPage({
                     (myRequest?.status as JoinRequestStatus | undefined) ?? null
                   }
                   entreDkk={party.entre_dkk}
+                  feeDkk={platformFeeDkk()}
                 />
-                <GroupPanel partyId={party.id} entreDkk={party.entre_dkk} />
+                <GroupPanel
+                  partyId={party.id}
+                  entreDkk={party.entre_dkk}
+                  feeDkk={platformFeeDkk()}
+                />
               </>
             )}
+            {claimState ? (
+              <ClaimButton partyId={party.id} claimed={claimState.claimed} />
+            ) : null}
             {myThreadId ? (
               <Link
                 href={`/messages/${myThreadId}`}

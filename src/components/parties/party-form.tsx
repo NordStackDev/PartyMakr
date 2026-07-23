@@ -48,6 +48,7 @@ export function PartyForm({
   submitLabel,
   pendingLabel,
   ticketPriceDkk = 0,
+  marketplace = false,
 }: {
   action: (
     state: CreatePartyState,
@@ -56,8 +57,10 @@ export function PartyForm({
   defaults?: PartyDefaults;
   submitLabel: string;
   pendingLabel: string;
-  /** The platform's uniform entré; 0 hides the paid-party option. */
+  /** Platform mode: the uniform entré; 0 hides the paid-party option. */
   ticketPriceDkk?: number;
+  /** Marketplace mode: the host sets their own ticket price. */
+  marketplace?: boolean;
 }) {
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(
     defaults?.lat != null && defaults?.lng != null
@@ -280,7 +283,25 @@ export function PartyForm({
         </label>
       </div>
 
-      {ticketPriceDkk > 0 || (defaults?.entreDkk ?? 0) > 0 ? (
+      {marketplace ? (
+        <label className="block">
+          <span className="auth-label">Billetpris pr. person i kr. (valgfri)</span>
+          <input
+            type="number"
+            name="entre_dkk"
+            min={0}
+            inputMode="numeric"
+            placeholder="Gratis"
+            defaultValue={v?.entre_dkk ?? defaults?.entreDkk ?? ""}
+            className="auth-input"
+          />
+          <span className="mt-1 block text-xs text-zinc-400">
+            Du fastsætter billetprisen og får den udbetalt efter festen.
+            PartyMakr lægger et separat platformgebyr oven i, som gæsten
+            betaler.
+          </span>
+        </label>
+      ) : ticketPriceDkk > 0 || (defaults?.entreDkk ?? 0) > 0 ? (
         <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
           <input
             type="checkbox"
