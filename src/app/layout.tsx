@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Fredoka } from "next/font/google";
-import "leaflet/dist/leaflet.css";
 import "./globals.css";
-import { BottomNav } from "@/components/nav/bottom-nav";
-import { HelpGuide } from "@/components/help/help-guide";
-import { RealtimeProvider } from "@/components/realtime/realtime-provider";
+import { AppChrome } from "@/components/app-chrome";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 // Body / UI — soft, rounded, highly legible (harmonises with the logo).
@@ -84,12 +81,10 @@ export default function RootLayout({
             >
               {children}
             </div>
-            <BottomNav />
-            <HelpGuide />
+            <AppChrome />
           </div>
         </div>
         <ServiceWorkerRegister />
-        <RealtimeProvider />
       </body>
     </html>
   );

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signUp } from "@/lib/auth/actions";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { SubmitButton } from "@/components/submit-button";
 import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
@@ -15,10 +15,7 @@ export default async function SignupPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (user) {
     redirect("/dashboard");
   }

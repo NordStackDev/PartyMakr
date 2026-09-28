@@ -1,15 +1,14 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { restoreAccount } from "@/lib/profile/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Brand } from "@/components/brand";
 
 export default async function RestoreAccountPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase

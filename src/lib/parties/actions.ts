@@ -139,14 +139,16 @@ export async function createParty(
   const capacityRaw = str(formData, "capacity").trim();
   const startsDate = startsAt ? new Date(startsAt) : null;
   const endsDate = endsAtRaw ? new Date(endsAtRaw) : null;
+  let postcodeHit = null as Awaited<ReturnType<typeof lookupPostcode>>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
   if (!description) fieldErrors.description = "Beskriv kort, hvad gæsterne kan glæde sig til.";
   if (!/^\d{4}$/.test(postcode)) {
     fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
-  } else if (!(await lookupPostcode(postcode))) {
-    fieldErrors.postcode = "Postnummeret blev ikke fundet.";
+  } else {
+    postcodeHit = await lookupPostcode(postcode);
+    if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
   }
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
     fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
@@ -187,6 +189,10 @@ export async function createParty(
     p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
+    p_postcode: postcodeHit!.nr,
+    p_postcode_name: postcodeHit!.navn,
+    p_postcode_lat: postcodeHit!.lat,
+    p_postcode_lng: postcodeHit!.lng,
   });
 
   if (error || !data) {
@@ -224,6 +230,8 @@ export async function updateParty(
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
+  const postcode = str(formData, "postcode").trim();
+  let postcodeHit = null as Awaited<ReturnType<typeof lookupPostcode>>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
@@ -231,6 +239,14 @@ export async function updateParty(
     fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
   }
   if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
+  if (postcode) {
+    if (!/^\d{4}$/.test(postcode)) {
+      fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
+    } else {
+      postcodeHit = await lookupPostcode(postcode);
+      if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
+    }
+  }
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, values: readValues(formData) };
   }
@@ -268,6 +284,10 @@ export async function updateParty(
     p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
+    p_postcode: postcodeHit?.nr ?? null,
+    p_postcode_name: postcodeHit?.navn ?? null,
+    p_postcode_lat: postcodeHit?.lat ?? null,
+    p_postcode_lng: postcodeHit?.lng ?? null,
   });
 
   if (error) {

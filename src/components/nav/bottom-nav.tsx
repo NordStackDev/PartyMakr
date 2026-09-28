@@ -24,17 +24,7 @@ import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/auth/actions";
 import { getMapApi, subscribeMapApi } from "@/lib/map-controls";
 import { requestOpenHelp, subscribeHelpOpened } from "@/lib/help-controls";
-
-/** Routes that belong to the consumer app shell — the tab bar shows only here. */
-const CONSUMER_PREFIXES = [
-  "/dashboard",
-  "/parties",
-  "/settings",
-  "/notifications",
-  "/friends",
-  "/messages",
-  "/profile",
-];
+import { isConsumerRoute } from "@/lib/routes";
 
 type Tab = {
   href: string;
@@ -64,6 +54,12 @@ function isActive(pathname: string, tab: Tab): boolean {
 
 export function BottomNav() {
   const pathname = usePathname();
+  if (!isConsumerRoute(pathname)) return null;
+
+  return <BottomNavContent pathname={pathname} />;
+}
+
+function BottomNavContent({ pathname }: { pathname: string }) {
   const [unread, setUnread] = useState(0);
   const [msgUnread, setMsgUnread] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -127,29 +123,48 @@ export function BottomNav() {
     let active = true;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
+    const loadCounts = async () => {
+      const { data } = await supabase.rpc("nav_badge_counts").maybeSingle();
+      if (!active) return;
+      const counts = data as {
+        unread_notifications: number;
+        unread_threads: number;
+      } | null;
+      setUnread(Number(counts?.unread_notifications ?? 0));
+      setMsgUnread(Number(counts?.unread_threads ?? 0));
+    };
+
     (async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user || !active) return;
 
-      const { count } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("read", false);
-      if (active) setUnread(count ?? 0);
+      await loadCounts();
+      if (!active) return;
 
       channel = supabase
-        .channel(`nav-notif-${user.id}`)
+        .channel(`nav-badges-${user.id}`)
         .on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*",
             schema: "public",
             table: "notifications",
             filter: `user_id=eq.${user.id}`,
           },
-          () => setUnread((c) => c + 1),
+          () => void loadCounts(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "party_threads" },
+          () => void loadCounts(),
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "party_messages" },
+          () => void loadCounts(),
         )
         .subscribe();
     })();
@@ -160,51 +175,10 @@ export function BottomNav() {
     };
   }, []);
 
-  // Re-count unread on every navigation so the badge stays correct even if
-  // Realtime isn't delivering (the bar persists in the layout and never
-  // remounts). RLS scopes the count to the current user.
-  useEffect(() => {
-    const supabase = createClient();
-    let active = true;
-    supabase
-      .from("notifications")
-      .select("*", { count: "exact", head: true })
-      .eq("read", false)
-      .then(({ count }) => {
-        if (active) setUnread(count ?? 0);
-      });
-
-    // Chat threads with unread messages → badge on the Venner tab.
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || !active) return;
-      const { data } = await supabase
-        .from("party_threads")
-        .select("guest_id, last_message_at, guest_last_read_at, host_last_read_at");
-      if (!active) return;
-      const count = (data ?? []).filter(
-        (t) =>
-          new Date(t.last_message_at) >
-          new Date(
-            t.guest_id === user.id
-              ? t.guest_last_read_at
-              : t.host_last_read_at,
-          ),
-      ).length;
-      setMsgUnread(count);
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [pathname]);
-
-  const visible = CONSUMER_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
-  if (!visible) return null;
+  const displayedUnread = pathname.startsWith("/notifications") ? 0 : unread;
+  const displayedMessageUnread = pathname.startsWith("/messages")
+    ? 0
+    : msgUnread;
 
   return (
     <>
@@ -220,7 +194,7 @@ export function BottomNav() {
         >
           <ChevronUp size={16} strokeWidth={2.4} />
           {/* Unread notifications live in the pull-up menu — surface them here */}
-          {unread > 0 ? (
+          {displayedUnread > 0 ? (
             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#14100b]" />
           ) : null}
         </button>
@@ -231,7 +205,7 @@ export function BottomNav() {
               key={tab.href}
               tab={tab}
               active={isActive(pathname, tab)}
-              badge={tab.href === "/messages" ? msgUnread : 0}
+              badge={tab.href === "/messages" ? displayedMessageUnread : 0}
             />
           ))}
 
@@ -252,7 +226,7 @@ export function BottomNav() {
               key={tab.href}
               tab={tab}
               active={isActive(pathname, tab)}
-              badge={tab.href === "/messages" ? msgUnread : 0}
+              badge={tab.href === "/messages" ? displayedMessageUnread : 0}
             />
           ))}
         </div>
@@ -347,9 +321,9 @@ export function BottomNav() {
                 >
                   <Icon size={20} />
                   {item.label}
-                  {item.href === "/notifications" && unread > 0 ? (
+                  {item.href === "/notifications" && displayedUnread > 0 ? (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white">
-                      {unread > 9 ? "9+" : unread}
+                      {displayedUnread > 9 ? "9+" : displayedUnread}
                     </span>
                   ) : null}
                 </Link>

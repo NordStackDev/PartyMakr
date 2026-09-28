@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { createParty } from "@/lib/parties/actions";
 import { ticketPriceDkk } from "@/lib/stripe/client";
 import { isMarketplace } from "@/lib/payments/mode";
@@ -12,9 +13,7 @@ import { BackButton } from "@/components/back-button";
 
 export default async function NewPartyPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // Creating a party requires MitID age verification (18+).

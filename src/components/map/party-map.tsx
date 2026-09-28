@@ -45,6 +45,10 @@ export type NearbyParty = {
   lon: number;
   lat: number;
   distance_m: number;
+  postcode: string | null;
+  postcode_name: string | null;
+  postcode_lat: number | null;
+  postcode_lng: number | null;
 };
 
 // Copenhagen fallback if geolocation is denied/unavailable.
@@ -146,8 +150,8 @@ export default function PartyMap({
   radiusKm?: number;
   admin?: boolean;
 }) {
-  const cached = readPos();
-  const [center, setCenter] = useState<[number, number] | null>(cached);
+  const [cached] = useState(readPos);
+  const [center, setCenter] = useState<[number, number]>(cached ?? FALLBACK);
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const [base, setBase] = useState<"satellite" | "dark">("satellite");
@@ -166,29 +170,68 @@ export default function PartyMap({
   );
   const [sheet, setSheet] = useState<PostcodeGroup | null>(null);
 
-  // Resolve each party's postcode + each postcode's town centre (both cached
-  // in lib/postcode, so revisits are instant and offline-safe).
+  // New parties already carry their public postcode centre from the database.
+  // Legacy rows fall back to one DAWA lookup per unique rounded coordinate.
   useEffect(() => {
     let active = true;
     (async () => {
-      const entries = await Promise.all(
-        parties.map(
-          async (p) => [p.id, await reversePostcode(p.lat, p.lon)] as const,
+      const refs: Record<string, PostcodeRef | null> = {};
+      const centers: Record<string, [number, number]> = {};
+      const legacyCoordinates = new Map<string, NearbyParty[]>();
+
+      for (const party of parties) {
+        if (
+          party.postcode &&
+          party.postcode_name &&
+          party.postcode_lat != null &&
+          party.postcode_lng != null
+        ) {
+          refs[party.id] = {
+            nr: party.postcode,
+            navn: party.postcode_name,
+          };
+          centers[party.postcode] = [party.postcode_lat, party.postcode_lng];
+          continue;
+        }
+
+        const key = `${party.lat.toFixed(3)},${party.lon.toFixed(3)}`;
+        legacyCoordinates.set(key, [
+          ...(legacyCoordinates.get(key) ?? []),
+          party,
+        ]);
+      }
+
+      const legacyEntries = await Promise.all(
+        [...legacyCoordinates.values()].map(async (matchingParties) => {
+          const first = matchingParties[0];
+          const ref = await reversePostcode(first.lat, first.lon);
+          return { matchingParties, ref };
+        }),
+      );
+
+      for (const { matchingParties, ref } of legacyEntries) {
+        for (const party of matchingParties) refs[party.id] = ref;
+      }
+      if (!active) return;
+      setPcByParty(refs);
+
+      const missingCenterPostcodes = [
+        ...new Set(
+          Object.values(refs).flatMap((ref) =>
+            ref && !centers[ref.nr] ? [ref.nr] : [],
+          ),
+        ),
+      ];
+      const legacyCenters = await Promise.all(
+        missingCenterPostcodes.map(
+          async (nr) => [nr, await lookupPostcode(nr)] as const,
         ),
       );
       if (!active) return;
-      setPcByParty(Object.fromEntries(entries));
-
-      const nrs = [...new Set(entries.flatMap(([, r]) => (r ? [r.nr] : [])))];
-      const centers = await Promise.all(
-        nrs.map(async (nr) => [nr, await lookupPostcode(nr)] as const),
-      );
-      if (!active) return;
-      const next: Record<string, [number, number]> = {};
-      for (const [nr, hit] of centers) {
-        if (hit) next[nr] = [hit.lat, hit.lng];
+      for (const [nr, hit] of legacyCenters) {
+        if (hit) centers[nr] = [hit.lat, hit.lng];
       }
-      setPcCenters((prev) => ({ ...prev, ...next }));
+      setPcCenters(centers);
     })();
     return () => {
       active = false;
@@ -238,11 +281,14 @@ export default function PartyMap({
     if (loaded.current) return;
     loaded.current = true;
 
+    const startingPoint = readPos() ?? FALLBACK;
+    void loadParties(startingPoint[0], startingPoint[1]);
+
     const onPos = (lat: number, lng: number, isMe: boolean) => {
       // Initial render uses `center`; once the map is mounted, fly to the user
       // so we always end up at their real location (even if we opened at a
       // cached spot or the user only just granted permission).
-      setCenter((c) => c ?? [lat, lng]);
+      setCenter([lat, lng]);
       if (isMe) {
         setMe([lat, lng]);
         writePos(lat, lng);
@@ -254,10 +300,7 @@ export default function PartyMap({
       loadParties(lat, lng);
     };
 
-    const applyFallback = () => {
-      const fb = readPos() ?? FALLBACK;
-      onPos(fb[0], fb[1], false);
-    };
+    const applyFallback = () => setCenter(startingPoint);
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       applyFallback();
@@ -341,14 +384,6 @@ export default function PartyMap({
     });
     return () => setMapApi(null);
   }, [admin]);
-
-  if (!center) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-300">
-        Finder din placering…
-      </div>
-    );
-  }
 
   return (
     <>

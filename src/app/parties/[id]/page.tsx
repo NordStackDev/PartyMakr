@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { deleteParty } from "@/lib/parties/actions";
 import { Avatar } from "@/components/friends/avatar";
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -83,9 +84,7 @@ export default async function PartyDetailPage({
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { data: rows } = await supabase.rpc("get_party", { p_id: id });

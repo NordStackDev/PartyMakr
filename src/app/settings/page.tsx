@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Landmark, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { updateSettings, verifyAgeStub } from "@/lib/profile/actions";
 import { iduraConfigured } from "@/lib/idura/client";
 import { connectStripePayouts, refreshPayoutStatus } from "@/lib/stripe/actions";
@@ -30,9 +31,7 @@ export default async function SettingsPage({
   searchParams: SearchParams;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { saved, error, stripe } = await searchParams;

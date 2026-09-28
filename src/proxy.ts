@@ -28,8 +28,10 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // Refreshes the session and writes new auth cookies onto the response.
-  await supabase.auth.getUser();
+  // Verifies the JWT and refreshes expired sessions. With asymmetric signing
+  // keys this is verified locally after the JWKS is cached, avoiding an Auth
+  // API round-trip on every navigation.
+  await supabase.auth.getClaims();
 
   return response;
 }

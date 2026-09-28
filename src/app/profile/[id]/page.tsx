@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { CalendarDays, Star } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { Avatar } from "@/components/friends/avatar";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BackButton } from "@/components/back-button";
@@ -37,9 +38,7 @@ export default async function ProfilePage({
   // Only allow internal paths as the back target.
   const backHref = from && from.startsWith("/") ? from : "/dashboard";
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // Din egen profil redigeres under Indstillinger — vis den bare her også.
