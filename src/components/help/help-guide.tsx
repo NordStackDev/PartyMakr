@@ -19,22 +19,22 @@ type Step = { title: string; desc: string };
 const GUEST_STEPS: Step[] = [
   {
     title: "Find fester",
-    desc: "Se offentlige og private fester i nærheden af dig på kortet.",
+    desc: "Se fester i nærheden af dig på kortet.",
   },
   {
     title: "Anmod om at deltage",
     desc: "Send en anmodning til festen og vent på, at værten godkender dig.",
   },
   {
-    title: "Betal entré",
-    desc: "Betal entréen (25 kr) samt evt. ekstra for mad, pynt, snacks m.m.",
+    title: "Tag til fest",
+    desc: "Når værten har godkendt dig, er du klar til at tage til festen.",
   },
 ];
 
 const HOST_STEPS: Step[] = [
   {
     title: "Opret din fest",
-    desc: "Vælg en offentlig eller privat fest på kortet, og udfyld detaljerne.",
+    desc: "Vælg et postnummer, og udfyld detaljerne.",
   },
   {
     title: "Godkend gæster",
@@ -42,11 +42,7 @@ const HOST_STEPS: Step[] = [
   },
   {
     title: "Afhold festen",
-    desc: "Afhold festen som planlagt. Så er alt klar til betaling.",
-  },
-  {
-    title: "Modtag betaling",
-    desc: "Få betaling for festen fra dine gæster, efter festen er afholdt.",
+    desc: "Afhold festen som planlagt, og giv dine gæster en god oplevelse.",
   },
 ];
 
