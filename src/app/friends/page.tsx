@@ -11,6 +11,7 @@ import {
 } from "@/lib/friends/actions";
 import { Avatar } from "@/components/friends/avatar";
 import { ConfirmButton } from "@/components/friends/confirm-button";
+import { FindFriends } from "@/components/friends/find-friends";
 
 type Friendship = {
   requester_id: string;
@@ -86,6 +87,10 @@ export default async function FriendsPage() {
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
       <h1 className="text-xl font-semibold tracking-tight text-white">Venner</h1>
+
+      <section className="mt-5">
+        <FindFriends />
+      </section>
 
       {incoming.length > 0 ? (
         <section className="mt-6">

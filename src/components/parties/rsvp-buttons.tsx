@@ -93,7 +93,7 @@ export function RsvpButtons({
         <div className="space-y-2">
           <span className="inline-flex min-h-11 items-center rounded-full bg-red-400/10 px-4 py-2 text-sm font-semibold text-red-300">
             {isPaid
-              ? "Værten afviste — beløbet refunderes"
+              ? "Værten afviste. Beløbet refunderes."
               : "Værten afviste din anmodning"}
           </span>
           <div>

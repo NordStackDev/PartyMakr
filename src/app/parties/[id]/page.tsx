@@ -32,10 +32,11 @@ import { verifyStartHref } from "@/lib/idura/client";
 import { ageFromDob } from "@/lib/age";
 import { ConfirmButton } from "@/components/friends/confirm-button";
 import { BackButton } from "@/components/back-button";
+import { ReviewForm } from "@/components/parties/review-form";
 import type { JoinRequestStatus, RsvpStatus } from "@/lib/parties/actions";
 
 function fmt(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "Ikke oplyst";
   return new Date(value).toLocaleString("da-DK", {
     dateStyle: "full",
     timeStyle: "short",
@@ -142,6 +143,39 @@ export default async function PartyDetailPage({
     (rows2.find((a) => a.user_id === user.id)?.status as RsvpStatus | undefined) ??
     null;
   const hostName = host?.display_name || host?.username || "en vært";
+  const partyEndedAt = party.ends_at
+    ? new Date(party.ends_at)
+    : new Date(new Date(party.starts_at).getTime() + 6 * 60 * 60 * 1000);
+  const ratingNow = new Date();
+  const ratingsOpen =
+    partyEndedAt <= ratingNow &&
+    partyEndedAt >= new Date(ratingNow.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const goingGuestIds = rows2
+    .filter((attendee) => attendee.status === "going" && attendee.user_id !== party.host_id)
+    .map((attendee) => attendee.user_id);
+
+  let reviewedIds = new Set<string>();
+  let goingGuests: { id: string; name: string }[] = [];
+  if (ratingsOpen) {
+    const [{ data: reviewRows }, { data: guestProfiles }] = await Promise.all([
+      supabase
+        .from("party_reviews")
+        .select("reviewee_id")
+        .eq("party_id", id)
+        .eq("reviewer_id", user.id),
+      isHost && goingGuestIds.length
+        ? supabase
+            .from("profiles")
+            .select("id, display_name, username")
+            .in("id", goingGuestIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    reviewedIds = new Set((reviewRows ?? []).map((review) => review.reviewee_id));
+    goingGuests = (guestProfiles ?? []).map((guest) => ({
+      id: guest.id,
+      name: guest.display_name || guest.username || "en gæst",
+    }));
+  }
 
   // Marketplace escrow: a paid, going guest can report a no-show once the
   // party should have started (an open claim pauses the host's payout).
@@ -193,7 +227,7 @@ export default async function PartyDetailPage({
     ) {
       joinBlock = {
         verify: false,
-        message: `Denne fest er kun for ${party.min_age}+ — du opfylder ikke aldersgrænsen.`,
+        message: `Denne fest er kun for ${party.min_age}+. Du opfylder ikke aldersgrænsen.`,
       };
     } else if (party.min_age != null && viewerAge == null) {
       joinBlock = {
@@ -404,6 +438,39 @@ export default async function PartyDetailPage({
           </>
         )}
       </div>
+
+      {ratingsOpen ? (
+        <section className="glass-card mt-5 space-y-4 rounded-2xl p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Vurder festen</h2>
+            <p className="mt-1 text-xs text-zinc-400">
+              Vurderinger er åbne i 30 dage efter festen. Kommentaren er kun synlig for modtageren.
+            </p>
+          </div>
+          {isHost ? (
+            goingGuests.length ? (
+              goingGuests.map((guest) => (
+                <ReviewForm
+                  key={guest.id}
+                  partyId={party.id}
+                  revieweeId={guest.id}
+                  revieweeName={guest.name}
+                  submitted={reviewedIds.has(guest.id)}
+                />
+              ))
+            ) : (
+              <p className="text-sm text-zinc-400">Ingen deltagende gæster at vurdere.</p>
+            )
+          ) : myRsvp === "going" ? (
+            <ReviewForm
+              partyId={party.id}
+              revieweeId={party.host_id}
+              revieweeName={hostName}
+              submitted={reviewedIds.has(party.host_id)}
+            />
+          ) : null}
+        </section>
+      ) : null}
     </main>
   );
 }

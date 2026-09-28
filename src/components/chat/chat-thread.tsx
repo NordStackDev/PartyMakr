@@ -127,7 +127,7 @@ export function ChatThread({
       <div className="scroll-touch mt-3 flex-1 space-y-2 overflow-y-auto py-2">
         {messages.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-400">
-            Ingen beskeder endnu — skriv den første.
+            Ingen beskeder endnu. Skriv den første.
           </p>
         ) : null}
         {messages.map((m) => {
@@ -160,7 +160,7 @@ export function ChatThread({
       {locked ? (
         <p className="mt-2 flex items-start gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
           <Lock size={15} className="mt-0.5 shrink-0 text-zinc-400" />
-          Samtalen er låst — anmodningen blev afvist.
+          Samtalen er låst, fordi anmodningen blev afvist.
         </p>
       ) : (
         <>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { WifiOff } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Offline — PartyMakr",
+  title: "PartyMakr offline",
 };
 
 export default function OfflinePage() {

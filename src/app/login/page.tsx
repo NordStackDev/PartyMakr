@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SubmitButton } from "@/components/submit-button";
 import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
+import { FreeFirstYearNotice } from "@/components/free-first-year-notice";
 
 type SearchParams = Promise<{
   error?: string;
@@ -32,13 +33,14 @@ export default async function LoginPage({
     <main className="flex flex-1 flex-col justify-center px-6 py-12">
       <Brand tagline="Velkommen tilbage til festen." />
 
-      <div className="mx-auto mt-8 w-full max-w-sm">
-        <h1 className="text-xl font-semibold tracking-tight text-white">
+      <div className="mx-auto mt-6 w-full max-w-sm">
+        <FreeFirstYearNotice />
+        <h1 className="text-xl font-semibold tracking-tight text-white mt-6">
           Log ind
         </h1>
 
         {message ? (
-          <p className="mt-4 rounded-xl border border-green-400/30 bg-green-400/10 px-3 py-2 text-sm text-green-300">
+          <p className="mt-6 rounded-xl border border-green-400/30 bg-green-400/10 px-3 py-2 text-sm text-green-300">
             {message}
           </p>
         ) : null}

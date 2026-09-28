@@ -24,7 +24,7 @@ export function ClaimButton({
   if (claimed) {
     return (
       <p className="mt-4 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-        Du har meldt, at festen ikke fandt sted. Vi kigger på det — værtens
+        Du har meldt, at festen ikke fandt sted. Vi kigger på det. Værtens
         udbetaling er sat på pause imens.
       </p>
     );

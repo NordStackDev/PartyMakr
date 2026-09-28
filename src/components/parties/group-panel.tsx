@@ -207,7 +207,7 @@ export function GroupPanel({
         <p className="mt-1 text-xs text-zinc-400">
           Inviter venner der også kommer, og meld jer til samlet
           {entreDkk && entreDkk > 0
-            ? ` — I betaler ${entreDkk} kr. pr. person, når værten har godkendt.`
+            ? `. I betaler ${entreDkk} kr. pr. person, når værten har godkendt.`
             : "."}
         </p>
 
@@ -341,7 +341,7 @@ export function GroupPanel({
         </p>
       ) : !amLeader && me?.status === "accepted" ? (
         <p className="mt-1 text-xs text-zinc-400">
-          Du er med — afventer at værten godkender gruppen.
+          Du er med. Gruppen afventer værtens godkendelse.
         </p>
       ) : !amLeader && me?.status === "declined" ? (
         <p className="mt-1 text-xs text-zinc-400">Du takkede nej til gruppen.</p>
@@ -349,8 +349,8 @@ export function GroupPanel({
         (group.status === "requested" || group.status === "approved") ? (
         <p className="mt-1 text-xs text-zinc-400">
           {entreDkk && entreDkk > 0
-            ? "Betalt · sendt til værten — afventer godkendelse. Afviser værten, refunderes hele beløbet."
-            : "Sendt til værten — afventer godkendelse."}
+            ? "Betalt · sendt til værten. Afventer godkendelse. Afviser værten, refunderes hele beløbet."
+            : "Sendt til værten. Afventer godkendelse."}
         </p>
       ) : amLeader && group.status === "forming" ? (
         <p className="mt-1 text-xs text-zinc-400">

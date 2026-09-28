@@ -42,7 +42,7 @@ const HOST_STEPS: Step[] = [
   },
   {
     title: "Afhold festen",
-    desc: "Afhold festen som planlagt — så er alt klar til betaling.",
+    desc: "Afhold festen som planlagt. Så er alt klar til betaling.",
   },
   {
     title: "Modtag betaling",
@@ -157,7 +157,7 @@ export function HelpGuide() {
               Sådan bruger du PartyMakr
             </h2>
             <p className="mt-1 text-sm text-zinc-300">
-              Kom hurtigt i gang — vælg din rolle nedenfor.
+              Kom hurtigt i gang. Vælg din rolle nedenfor.
             </p>
           </div>
           <button

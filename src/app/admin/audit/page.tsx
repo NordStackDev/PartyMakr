@@ -7,7 +7,7 @@ import { permissionLabel } from "@/lib/admin/permissions";
 import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
 function formatDate(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "Ikke oplyst";
   return new Date(value).toLocaleString("da-DK", {
     dateStyle: "medium",
     timeStyle: "short",

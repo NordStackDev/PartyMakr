@@ -8,7 +8,7 @@ import { PartyEditor } from "@/components/admin/party-editor";
 import { ModerationButton } from "@/components/admin/moderation-button";
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return "Ikke oplyst";
   return new Date(value).toLocaleString("da-DK", {
     dateStyle: "medium",
     timeStyle: "short",

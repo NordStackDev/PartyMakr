@@ -41,6 +41,7 @@ export default async function NewPartyPage() {
             pendingLabel="Opretter…"
             ticketPriceDkk={ticketPriceDkk()}
             marketplace={isMarketplace()}
+            strictCreate
           />
         ) : (
           <VerifyAgeNotice

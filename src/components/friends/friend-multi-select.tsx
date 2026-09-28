@@ -96,7 +96,7 @@ export function FriendMultiSelect({
   if (friends.length === 0) {
     return (
       <p className="text-sm text-zinc-400">
-        Du har ingen venner at invitere endnu — tilføj nogle venner først.
+        Du har ingen venner at invitere endnu. Tilføj nogle venner først.
       </p>
     );
   }

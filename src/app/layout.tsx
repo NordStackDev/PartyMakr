@@ -23,7 +23,7 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "PartyMakr",
-  description: "Find fester i nærheden af dig — på et kort, ikke et feed.",
+  description: "Find fester i nærheden af dig på et kort, ikke i et feed.",
   applicationName: "PartyMakr",
   appleWebApp: {
     capable: true,
