@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ticketPriceDkk } from "@/lib/stripe/client";
 import { isMarketplace } from "@/lib/payments/mode";
-import { lookupPostcode } from "@/lib/postcode";
+import { lookupPostcodeLocal } from "@/lib/postcode-data.server";
 import {
   findGroupReference,
   findSoloReference,
@@ -139,7 +139,7 @@ export async function createParty(
   const capacityRaw = str(formData, "capacity").trim();
   const startsDate = startsAt ? new Date(startsAt) : null;
   const endsDate = endsAtRaw ? new Date(endsAtRaw) : null;
-  let postcodeHit = null as Awaited<ReturnType<typeof lookupPostcode>>;
+  let postcodeHit = null as ReturnType<typeof lookupPostcodeLocal>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
@@ -147,7 +147,7 @@ export async function createParty(
   if (!/^\d{4}$/.test(postcode)) {
     fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
   } else {
-    postcodeHit = await lookupPostcode(postcode);
+    postcodeHit = lookupPostcodeLocal(postcode);
     if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
   }
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
@@ -231,7 +231,7 @@ export async function updateParty(
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
   const postcode = str(formData, "postcode").trim();
-  let postcodeHit = null as Awaited<ReturnType<typeof lookupPostcode>>;
+  let postcodeHit = null as ReturnType<typeof lookupPostcodeLocal>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
@@ -243,7 +243,7 @@ export async function updateParty(
     if (!/^\d{4}$/.test(postcode)) {
       fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
     } else {
-      postcodeHit = await lookupPostcode(postcode);
+      postcodeHit = lookupPostcodeLocal(postcode);
       if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
     }
   }

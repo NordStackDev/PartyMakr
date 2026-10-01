@@ -1,6 +1,5 @@
-// Danish postcode lookup via DAWA (Danmarks Adressers Web API) —
-// official public data, free, CORS-enabled, no API key.
-// https://dawadocs.dataforsyningen.dk/dok/api/postnummer
+// Browser-side access to PartyMakr's bundled Danish postcode directory. The
+// API route keeps the full dataset out of the client bundle.
 
 export type PostcodeHit = {
   nr: string;
@@ -11,8 +10,7 @@ export type PostcodeHit = {
 
 export type PostcodeRef = { nr: string; navn: string };
 
-// Module-level caches: the map does one lookup per party / per postcode on
-// every load, and these answers never change within a session.
+// Module-level caches avoid repeated route calls during a browser session.
 const lookupCache = new Map<string, PostcodeHit | null>();
 const reverseCache = new Map<string, PostcodeRef | null>();
 
@@ -25,15 +23,13 @@ export async function reversePostcode(
   const cached = reverseCache.get(key);
   if (cached !== undefined) return cached;
   try {
-    const res = await fetch(
-      `https://api.dataforsyningen.dk/postnumre/reverse?x=${lng}&y=${lat}`,
-      { headers: { Accept: "application/json" } },
-    );
+    const params = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    const res = await fetch(`/api/postcodes?${params}`);
     if (!res.ok) {
       reverseCache.set(key, null);
       return null;
     }
-    const data = (await res.json()) as { nr: string; navn: string };
+    const data = (await res.json()) as PostcodeHit;
     const hit = { nr: data.nr, navn: data.navn };
     reverseCache.set(key, hit);
     return hit;
@@ -48,23 +44,12 @@ export async function lookupPostcode(raw: string): Promise<PostcodeHit | null> {
   const cached = lookupCache.get(nr);
   if (cached !== undefined) return cached;
   try {
-    // `landpostnumre` clips the district to the coastline — several West
-    // Jutland postcodes stretch far into the North Sea, so the plain
-    // visueltcenter would otherwise land in open water.
-    const res = await fetch(
-      `https://api.dataforsyningen.dk/postnumre/${nr}?landpostnumre`,
-      { headers: { Accept: "application/json" } },
-    );
+    const params = new URLSearchParams({ postcode: nr });
+    const res = await fetch(`/api/postcodes?${params}`);
     if (!res.ok) return null;
-    const data = (await res.json()) as {
-      nr: string;
-      navn: string;
-      // DAWA coordinates are [lon, lat].
-      visueltcenter?: [number, number];
-    };
-    if (!data.visueltcenter) return null;
-    const [lng, lat] = data.visueltcenter;
-    return { nr: data.nr, navn: data.navn, lat, lng };
+    const data = (await res.json()) as PostcodeHit;
+    lookupCache.set(nr, data);
+    return data;
   } catch {
     return null;
   }

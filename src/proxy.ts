@@ -39,6 +39,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip the session-refresh round-trip on static + PWA assets that never need auth.
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|api/postcodes|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
