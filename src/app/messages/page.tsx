@@ -5,89 +5,35 @@ import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { Avatar } from "@/components/friends/avatar";
+import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
-type ThreadRow = {
-  id: string;
-  party_id: string;
-  guest_id: string;
-  locked: boolean;
-  last_message_at: string;
-  guest_last_read_at: string;
-  host_last_read_at: string;
-};
-type Profile = {
-  id: string;
-  display_name: string | null;
-  username: string | null;
-  avatar_url: string | null;
+type ThreadSummary = {
+  thread_id: string;
+  counterpart_name: string;
+  counterpart_avatar_url: string | null;
+  party_title: string;
+  unread: boolean;
+  total_count: number;
 };
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // RLS returns only threads where I'm the guest or the host.
-  const { data: threadData } = await supabase
-    .from("party_threads")
-    .select(
-      "id, party_id, guest_id, locked, last_message_at, guest_last_read_at, host_last_read_at",
-    )
-    .order("last_message_at", { ascending: false })
-    .limit(100);
-  const threadRows = (threadData ?? []) as ThreadRow[];
-
-  // Resolve party titles/hosts + the counterpart's profile per thread.
-  const { data: threadParties } = threadRows.length
-    ? await supabase
-        .from("parties")
-        .select("id, title, host_id")
-        .in("id", [...new Set(threadRows.map((t) => t.party_id))])
-    : { data: [] };
-  const partyById = new Map(
-    (
-      (threadParties ?? []) as { id: string; title: string; host_id: string }[]
-    ).map((p) => [p.id, p]),
-  );
-
-  const counterpartIds = [
-    ...new Set(
-      threadRows.flatMap((t) => {
-        const other =
-          t.guest_id === user.id
-            ? partyById.get(t.party_id)?.host_id
-            : t.guest_id;
-        return other ? [other] : [];
-      }),
-    ),
-  ];
-  const { data: counterpartData } = counterpartIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, display_name, username, avatar_url")
-        .in("id", counterpartIds)
-    : { data: [] };
-  const counterparts = new Map(
-    ((counterpartData ?? []) as Profile[]).map((p) => [p.id, p]),
-  );
-
-  const threads = threadRows.map((t) => {
-    const iAmGuest = t.guest_id === user.id;
-    const other = iAmGuest
-      ? counterparts.get(partyById.get(t.party_id)?.host_id ?? "")
-      : counterparts.get(t.guest_id);
-    const myRead = iAmGuest ? t.guest_last_read_at : t.host_last_read_at;
-    return {
-      id: t.id,
-      name:
-        other?.display_name ||
-        other?.username ||
-        (iAmGuest ? "Værten" : "Gæsten"),
-      avatarUrl: other?.avatar_url ?? null,
-      partyTitle: partyById.get(t.party_id)?.title ?? "Fest",
-      unread: new Date(t.last_message_at) > new Date(myRead),
-    };
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const { data } = await supabase.rpc("list_message_threads", {
+    p_limit: PAGE_SIZE,
+    p_offset: (page - 1) * PAGE_SIZE,
   });
+  const threads = (data ?? []) as ThreadSummary[];
+  const total = Number(threads[0]?.total_count ?? 0);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
@@ -105,20 +51,26 @@ export default async function MessagesPage() {
       </div>
 
       <ul className="mt-5 space-y-2">
-        {threads.map((t) => (
-          <li key={t.id}>
+        {threads.map((thread) => (
+          <li key={thread.thread_id}>
             <Link
-              href={`/messages/${t.id}`}
+              href={`/messages/${thread.thread_id}`}
               className="glass-card flex items-center gap-3 rounded-2xl p-3 transition hover:bg-white/5"
             >
-              <Avatar url={t.avatarUrl} name={t.name} size={40} />
+              <Avatar
+                url={thread.counterpart_avatar_url}
+                name={thread.counterpart_name}
+                size={40}
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">
-                  {t.name}
+                  {thread.counterpart_name}
                 </p>
-                <p className="truncate text-xs text-zinc-400">{t.partyTitle}</p>
+                <p className="truncate text-xs text-zinc-400">
+                  {thread.party_title}
+                </p>
               </div>
-              {t.unread ? (
+              {thread.unread ? (
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--brand)]" />
               ) : null}
             </Link>
@@ -131,6 +83,11 @@ export default async function MessagesPage() {
           </li>
         ) : null}
       </ul>
+      <Pagination
+        basePath="/messages"
+        page={page}
+        pageCount={pageCount}
+      />
     </main>
   );
 }

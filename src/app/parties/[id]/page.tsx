@@ -154,11 +154,21 @@ export default async function PartyDetailPage({
     .map((attendee) => attendee.user_id);
 
   let reviewedIds = new Set<string>();
+  let skippedIds = new Set<string>();
   let goingGuests: { id: string; name: string }[] = [];
   if (ratingsOpen) {
-    const [{ data: reviewRows }, { data: guestProfiles }] = await Promise.all([
+    const [
+      { data: reviewRows },
+      { data: skipRows },
+      { data: guestProfiles },
+    ] = await Promise.all([
       supabase
         .from("party_reviews")
+        .select("reviewee_id")
+        .eq("party_id", id)
+        .eq("reviewer_id", user.id),
+      supabase
+        .from("party_review_skips")
         .select("reviewee_id")
         .eq("party_id", id)
         .eq("reviewer_id", user.id),
@@ -170,6 +180,7 @@ export default async function PartyDetailPage({
         : Promise.resolve({ data: [] }),
     ]);
     reviewedIds = new Set((reviewRows ?? []).map((review) => review.reviewee_id));
+    skippedIds = new Set((skipRows ?? []).map((skip) => skip.reviewee_id));
     goingGuests = (guestProfiles ?? []).map((guest) => ({
       id: guest.id,
       name: guest.display_name || guest.username || "en gæst",
@@ -438,8 +449,11 @@ export default async function PartyDetailPage({
         )}
       </div>
 
-      {ratingsOpen ? (
-        <section className="glass-card mt-5 space-y-4 rounded-2xl p-4">
+      {ratingsOpen && (isHost || myRsvp === "going") ? (
+        <section
+          id="ratings"
+          className="glass-card mt-5 scroll-mt-4 space-y-4 rounded-2xl p-4"
+        >
           <div>
             <h2 className="text-sm font-semibold text-white">Vurder festen</h2>
             <p className="mt-1 text-xs text-zinc-400">
@@ -447,8 +461,10 @@ export default async function PartyDetailPage({
             </p>
           </div>
           {isHost ? (
-            goingGuests.length ? (
-              goingGuests.map((guest) => (
+            goingGuests.some((guest) => !skippedIds.has(guest.id)) ? (
+              goingGuests
+                .filter((guest) => !skippedIds.has(guest.id))
+                .map((guest) => (
                 <ReviewForm
                   key={guest.id}
                   partyId={party.id}
@@ -456,17 +472,27 @@ export default async function PartyDetailPage({
                   revieweeName={guest.name}
                   submitted={reviewedIds.has(guest.id)}
                 />
-              ))
+                ))
             ) : (
-              <p className="text-sm text-zinc-400">Ingen deltagende gæster at vurdere.</p>
+              <p className="text-sm text-zinc-400">
+                {goingGuests.length
+                  ? "Du har håndteret alle vurderinger for festen."
+                  : "Ingen deltagende gæster at vurdere."}
+              </p>
             )
           ) : myRsvp === "going" ? (
-            <ReviewForm
-              partyId={party.id}
-              revieweeId={party.host_id}
-              revieweeName={hostName}
-              submitted={reviewedIds.has(party.host_id)}
-            />
+            skippedIds.has(party.host_id) ? (
+              <p className="text-sm text-zinc-400">
+                Du har valgt at springe vurderingen over.
+              </p>
+            ) : (
+              <ReviewForm
+                partyId={party.id}
+                revieweeId={party.host_id}
+                revieweeName={hostName}
+                submitted={reviewedIds.has(party.host_id)}
+              />
+            )
           ) : null}
         </section>
       ) : null}

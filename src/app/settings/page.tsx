@@ -13,6 +13,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { RadiusSlider } from "@/components/settings/radius-slider";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
 import { DeleteAccountButton } from "@/components/settings/delete-account-button";
+import { PushNotificationSettings } from "@/components/settings/push-notification-settings";
 
 function ageFrom(dob: string): number {
   const d = new Date(dob);
@@ -274,6 +275,8 @@ export default async function SettingsPage({
           </div>
         ) : null}
       </section>
+
+      <PushNotificationSettings />
 
       <section className="glass-card mt-6 space-y-3 rounded-2xl p-5">
         <h2 className="text-sm font-semibold text-white">Slet konto</h2>

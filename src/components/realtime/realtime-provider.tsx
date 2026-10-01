@@ -31,7 +31,9 @@ function RealtimeProviderConnection({ pathname }: { pathname: string }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const watchesMessages = pathname.startsWith("/messages");
+    // The open chat owns a filtered local subscription. Refreshing the entire
+    // route for the same insert would duplicate work and can interrupt scroll.
+    const watchesMessages = pathname === "/messages";
     const watchesPartyRequests = pathname.startsWith("/parties");
     if (!watchesMessages && !watchesPartyRequests) return;
 
@@ -70,9 +72,15 @@ function RealtimeProviderConnection({ pathname }: { pathname: string }) {
           );
       }
       if (watchesPartyRequests) {
+        const partyId = pathname.match(/^\/parties\/([0-9a-f-]{36})(?:\/|$)/i)?.[1];
         channel.on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "party_join_requests" },
+          {
+            event: "*",
+            schema: "public",
+            table: "party_join_requests",
+            ...(partyId ? { filter: `party_id=eq.${partyId}` } : {}),
+          },
           refreshSoon,
         );
       }

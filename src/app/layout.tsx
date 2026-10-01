@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Fredoka } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { AppChrome } from "@/components/app-chrome";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
@@ -85,6 +86,7 @@ export default function RootLayout({
           </div>
         </div>
         <ServiceWorkerRegister />
+        <SpeedInsights />
       </body>
     </html>
   );

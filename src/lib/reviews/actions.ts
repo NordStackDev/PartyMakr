@@ -32,5 +32,29 @@ export async function submitPartyReview(
   revalidatePath(`/parties/${partyId}`);
   revalidatePath(`/profile/${revieweeId}`);
   revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  return {};
+}
+
+/** Dismiss every outstanding review for this user and party. */
+export async function skipPartyReviews(
+  partyId: string,
+): Promise<SubmitReviewResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { error } = await supabase.rpc("skip_party_reviews", {
+    p_party_id: partyId,
+  });
+  if (error) {
+    return { error: error.message || "Kunne ikke springe vurderingen over." };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/parties/${partyId}`);
+  revalidatePath("/notifications");
   return {};
 }

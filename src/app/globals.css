@@ -153,7 +153,11 @@ label,
 
   /* Deep midnight backdrop behind the frame */
   .club-bg {
-    @apply bg-[var(--base)];
+    background-color: var(--base);
+    background-image:
+      radial-gradient(circle at 8% 8%, rgba(245, 158, 11, 0.3), transparent 42%),
+      radial-gradient(circle at 92% 38%, rgba(99, 191, 203, 0.28), transparent 44%),
+      radial-gradient(circle at 45% 105%, rgba(252, 190, 79, 0.22), transparent 40%);
   }
 
   /* Frosted glass panel that lets the glow bleed through */
@@ -385,6 +389,24 @@ select.auth-input:disabled {
   transform: translate(-50%, -50%);
 }
 
+/* Phones get the same colour palette as a static background. Large blurred
+   layers are expensive to composite while scrolling and navigating, so the
+   animated decoration is reserved for wider screens. */
+.aurora,
+.glow-a,
+.glow-b,
+.glow-c {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.055);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 @keyframes pm-spin {
   from {
     transform: translate(-50%, -50%) rotate(0turn);
@@ -468,7 +490,16 @@ select.auth-input:disabled {
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media (min-width: 640px) {
+  .aurora,
+  .glow-a,
+  .glow-b,
+  .glow-c {
+    display: block;
+  }
+}
+
+@media (min-width: 640px) and (prefers-reduced-motion: no-preference) {
   .aurora {
     animation: pm-spin 40s linear infinite;
     will-change: transform;

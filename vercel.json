@@ -7,6 +7,10 @@
     {
       "path": "/api/accounts/purge",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/reviews/remind",
+      "schedule": "30 3 * * *"
     }
   ]
 }

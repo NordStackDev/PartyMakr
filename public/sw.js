@@ -4,7 +4,7 @@
  * - network-first for navigations, falling back to the offline page
  * Supabase API/auth requests are never intercepted (they fall through).
  */
-const VERSION = "pm-v1";
+const VERSION = "pm-v2";
 const STATIC_CACHE = `static-${VERSION}`;
 const TILE_CACHE = `tiles-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -76,6 +76,56 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data?.text() };
+  }
+
+  const title = payload.title || "PartyMakr";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "Du har en ny besked.",
+      icon: "/pm-mark.png",
+      badge: "/pm-mark.png",
+      tag: payload.tag || "partymakr-notification",
+      data: { url: payload.url || "/dashboard" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  let target = new URL("/dashboard", self.location.origin);
+  try {
+    const requested = new URL(
+      event.notification.data?.url || "/dashboard",
+      self.location.origin,
+    );
+    if (requested.origin === self.location.origin) target = requested;
+  } catch {
+    // Keep the safe dashboard fallback.
+  }
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(async (clients) => {
+        const existing = clients.find(
+          (client) => new URL(client.url).origin === self.location.origin,
+        );
+        if (existing) {
+          if ("navigate" in existing) await existing.navigate(target.href);
+          return existing.focus();
+        }
+        return self.clients.openWindow(target.href);
+      }),
+  );
 });
 
 async function staleWhileRevalidate(request, cacheName) {

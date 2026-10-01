@@ -16,6 +16,11 @@ const RealtimeProvider = dynamic(() =>
     (module) => module.RealtimeProvider,
   ),
 );
+const PushNotificationPrompt = dynamic(() =>
+  import("@/components/notifications/push-notification-prompt").then(
+    (module) => module.PushNotificationPrompt,
+  ),
+);
 
 export function AppChrome() {
   const pathname = usePathname();
@@ -26,6 +31,7 @@ export function AppChrome() {
       <BottomNav />
       <HelpGuide />
       <RealtimeProvider />
+      <PushNotificationPrompt />
     </>
   );
 }

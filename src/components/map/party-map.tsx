@@ -406,8 +406,8 @@ export default function PartyMap({
           attribution={TILES[base].attribution}
           subdomains={TILES[base].subdomains}
           maxZoom={MAX_ZOOM}
-          keepBuffer={4}
-          updateWhenIdle={false}
+          keepBuffer={2}
+          updateWhenIdle
         />
 
         {me ? <Marker position={me} icon={meIcon} interactive={false} /> : null}
