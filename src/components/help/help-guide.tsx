@@ -9,32 +9,34 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import { markOnboarded } from "@/lib/profile/actions";
 import { helpOpened, subscribeOpenHelp } from "@/lib/help-controls";
+import { isConsumerRoute } from "@/lib/routes";
 
 type Step = { title: string; desc: string };
 
 const GUEST_STEPS: Step[] = [
   {
     title: "Find fester",
-    desc: "Se offentlige og private fester i nærheden af dig på kortet.",
+    desc: "Se fester i nærheden af dig på kortet.",
   },
   {
     title: "Anmod om at deltage",
     desc: "Send en anmodning til festen og vent på, at værten godkender dig.",
   },
   {
-    title: "Betal entré",
-    desc: "Betal entréen (25 kr) samt evt. ekstra for mad, pynt, snacks m.m.",
+    title: "Tag til fest",
+    desc: "Når værten har godkendt dig, er du klar til at tage til festen.",
   },
 ];
 
 const HOST_STEPS: Step[] = [
   {
     title: "Opret din fest",
-    desc: "Vælg en offentlig eller privat fest på kortet, og udfyld detaljerne.",
+    desc: "Vælg et postnummer, og udfyld detaljerne.",
   },
   {
     title: "Godkend gæster",
@@ -42,15 +44,18 @@ const HOST_STEPS: Step[] = [
   },
   {
     title: "Afhold festen",
-    desc: "Afhold festen som planlagt — så er alt klar til betaling.",
-  },
-  {
-    title: "Modtag betaling",
-    desc: "Få betaling for festen fra dine gæster, efter festen er afholdt.",
+    desc: "Afhold festen som planlagt, og giv dine gæster en god oplevelse.",
   },
 ];
 
 export function HelpGuide() {
+  const pathname = usePathname();
+  if (!isConsumerRoute(pathname)) return null;
+
+  return <HelpGuideContent />;
+}
+
+function HelpGuideContent() {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<"guest" | "host">("guest");
   // Render the overlay into <body> (not the phone-frame card) so it escapes the
@@ -82,8 +87,9 @@ export function HelpGuide() {
     let active = true;
     (async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user || !active) return;
       const { data } = await supabase
         .from("profiles")
@@ -157,7 +163,7 @@ export function HelpGuide() {
               Sådan bruger du PartyMakr
             </h2>
             <p className="mt-1 text-sm text-zinc-300">
-              Kom hurtigt i gang — vælg din rolle nedenfor.
+              Kom hurtigt i gang. Vælg din rolle nedenfor.
             </p>
           </div>
           <button

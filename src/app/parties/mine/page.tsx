@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Pencil } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 
 function fmt(value: string): string {
   return new Date(value).toLocaleString("da-DK", {
@@ -20,9 +21,7 @@ type Party = {
 
 export default async function MyPartiesPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { data } = await supabase

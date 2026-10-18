@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { Avatar } from "@/components/friends/avatar";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { BackButton } from "@/components/back-button";
@@ -27,9 +28,7 @@ export default async function MessageThreadPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // RLS: only the guest and the host can read the thread.

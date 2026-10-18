@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Landmark, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import {
   removeAgeVerification,
   updateSettings,
@@ -16,6 +17,8 @@ import { signOut } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { RadiusSlider } from "@/components/settings/radius-slider";
 import { AvatarUploader } from "@/components/settings/avatar-uploader";
+import { DeleteAccountButton } from "@/components/settings/delete-account-button";
+import { PushNotificationSettings } from "@/components/settings/push-notification-settings";
 
 function ageFrom(dob: string): number {
   const d = new Date(dob);
@@ -34,9 +37,7 @@ export default async function SettingsPage({
   searchParams: SearchParams;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   const { saved, error, stripe } = await searchParams;
@@ -46,7 +47,7 @@ export default async function SettingsPage({
     await refreshPayoutStatus(user.id);
   }
 
-  const [{ data: profile }, { data: ageRow }, { data: payout }] =
+  const [{ data: profile }, { data: ageRow }, { data: payout }, { data: reviews }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -68,7 +69,38 @@ export default async function SettingsPage({
             .eq("id", user.id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      supabase
+        .from("party_reviews")
+        .select("party_id, reviewer_id, rating, comment, created_at")
+        .eq("reviewee_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
+
+  const reviewRows = (reviews ?? []) as {
+    party_id: string;
+    reviewer_id: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+  }[];
+  const reviewerIds = [...new Set(reviewRows.map((review) => review.reviewer_id))];
+  const reviewedPartyIds = [...new Set(reviewRows.map((review) => review.party_id))];
+  const [{ data: reviewers }, { data: reviewedParties }] = await Promise.all([
+    reviewerIds.length
+      ? supabase.from("profiles").select("id, display_name, username").in("id", reviewerIds)
+      : Promise.resolve({ data: [] }),
+    reviewedPartyIds.length
+      ? supabase.from("parties").select("id, title").in("id", reviewedPartyIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const reviewerName = new Map(
+    (reviewers ?? []).map((reviewer) => [
+      reviewer.id,
+      reviewer.display_name || reviewer.username || "En deltager",
+    ]),
+  );
+  const partyTitle = new Map((reviewedParties ?? []).map((party) => [party.id, party.title]));
 
   const radius = profile?.search_radius_km ?? 250;
   const age = ageRow?.date_of_birth ? ageFrom(ageRow.date_of_birth) : null;
@@ -148,6 +180,31 @@ export default async function SettingsPage({
         </form>
 
         <div className="border-t border-white/10 pt-4">
+          <h3 className="text-sm font-semibold text-white">Private vurderinger</h3>
+          <p className="mt-1 text-xs text-zinc-400">
+            Kun du kan se kommentarer, du har modtaget efter en fest.
+          </p>
+          {reviewRows.length ? (
+            <ul className="mt-3 space-y-2">
+              {reviewRows.map((review) => (
+                <li key={`${review.party_id}-${review.reviewer_id}`} className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+                  <p className="font-medium text-amber-200">
+                    {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                  </p>
+                  <p className="mt-1 text-zinc-200">
+                    Fra {reviewerName.get(review.reviewer_id) ?? "en deltager"}
+                    {partyTitle.get(review.party_id) ? ` · ${partyTitle.get(review.party_id)}` : ""}
+                  </p>
+                  {review.comment ? <p className="mt-2 whitespace-pre-wrap text-zinc-300">{review.comment}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-400">Du har ikke modtaget vurderinger endnu.</p>
+          )}
+        </div>
+
+        <div className="border-t border-white/10 pt-4">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
             <ShieldCheck size={16} className="text-amber-300" />
             Aldersverifikation
@@ -215,13 +272,13 @@ export default async function SettingsPage({
             {payout?.charges_enabled ? (
               <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
                 <ShieldCheck size={15} />
-                Tilsluttet — billetindtægter udbetales efter dine fester
+                Tilsluttet. Billetindtægter udbetales efter dine fester.
               </p>
             ) : (
               <form action={connectStripePayouts} className="mt-2 space-y-2">
                 <p className="text-xs text-zinc-400">
                   {payout
-                    ? "Din tilslutning er ikke færdig endnu — fortsæt hos Stripe."
+                    ? "Din tilslutning er ikke færdig endnu. Fortsæt hos Stripe."
                     : "Tilslut en udbetalingskonto (Stripe), så din billetindtægt kan udbetales efter festen."}
                 </p>
                 <SubmitButton className="btn-secondary" pendingText="Åbner Stripe…">
@@ -231,6 +288,16 @@ export default async function SettingsPage({
             )}
           </div>
         ) : null}
+      </section>
+
+      <PushNotificationSettings />
+
+      <section className="glass-card mt-6 space-y-3 rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-white">Slet konto</h2>
+        <p className="text-sm text-zinc-300">
+          Din konto skjules med det samme og slettes permanent efter 30 dage.
+        </p>
+        <DeleteAccountButton />
       </section>
 
       <form action={signOut} className="mt-6">

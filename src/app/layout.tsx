@@ -1,10 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Fredoka } from "next/font/google";
-import "leaflet/dist/leaflet.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
-import { BottomNav } from "@/components/nav/bottom-nav";
-import { HelpGuide } from "@/components/help/help-guide";
-import { RealtimeProvider } from "@/components/realtime/realtime-provider";
+import { AppChrome } from "@/components/app-chrome";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 // Body / UI — soft, rounded, highly legible (harmonises with the logo).
@@ -23,7 +21,7 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "PartyMakr",
-  description: "Find fester i nærheden af dig — på et kort, ikke et feed.",
+  description: "Find fester i nærheden af dig på et kort, ikke i et feed.",
   applicationName: "PartyMakr",
   appleWebApp: {
     capable: true,
@@ -84,12 +82,11 @@ export default function RootLayout({
             >
               {children}
             </div>
-            <BottomNav />
-            <HelpGuide />
+            <AppChrome />
           </div>
         </div>
         <ServiceWorkerRegister />
-        <RealtimeProvider />
+        <SpeedInsights />
       </body>
     </html>
   );

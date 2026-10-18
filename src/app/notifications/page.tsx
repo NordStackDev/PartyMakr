@@ -6,12 +6,15 @@ import {
   PartyPopper,
   Bell,
   CalendarX,
+  Star,
   UserPlus,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { MarkRead } from "@/components/notifications/mark-read";
 import { BackButton } from "@/components/back-button";
+import { Pagination, PAGE_SIZE } from "@/components/admin/pagination";
 
 function timeAgo(value: string): string {
   return new Date(value).toLocaleString("da-DK", {
@@ -38,22 +41,31 @@ const ICON = {
   join_response: PartyPopper,
   message: MessageCircle,
   party_cancelled: CalendarX,
+  review_reminder: Star,
 } as const;
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { data } = await supabase
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const { data, count } = await supabase
     .from("notifications")
-    .select("id, type, title, body, party_id, read, created_at")
+    .select("id, type, title, body, party_id, read, created_at", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(from, from + PAGE_SIZE - 1);
 
   const items = (data ?? []) as Notification[];
+  const pageCount = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
@@ -92,7 +104,7 @@ export default async function NotificationsPage() {
             </div>
           );
           const href = n.party_id
-            ? `/parties/${n.party_id}`
+            ? `/parties/${n.party_id}${n.type === "review_reminder" ? "#ratings" : ""}`
             : n.type === "friend"
               ? "/friends"
               : null;
@@ -108,6 +120,11 @@ export default async function NotificationsPage() {
           </li>
         ) : null}
       </ul>
+      <Pagination
+        basePath="/notifications"
+        page={page}
+        pageCount={pageCount}
+      />
     </main>
   );
 }

@@ -45,6 +45,10 @@ export type NearbyParty = {
   lon: number;
   lat: number;
   distance_m: number;
+  postcode: string | null;
+  postcode_name: string | null;
+  postcode_lat: number | null;
+  postcode_lng: number | null;
 };
 
 // Copenhagen fallback if geolocation is denied/unavailable.
@@ -57,12 +61,13 @@ const TILES = {
   dark: {
     url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> &middot; Postnumre &copy; <a href="https://www.geonames.org/">GeoNames</a>',
     subdomains: "abcd",
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "&copy; Esri",
+    attribution:
+      '&copy; Esri &middot; Postnumre &copy; <a href="https://www.geonames.org/">GeoNames</a>',
     subdomains: "",
   },
 };
@@ -104,7 +109,7 @@ function areaStyle(color: string) {
 
 // Parties in the SAME POSTCODE render as one pin (with an area circle around
 // it) placed on the postcode's town centre — tapping it opens a sheet listing
-// every party inside. Postcodes come from DAWA reverse lookup (lib/postcode).
+// every party inside. Postcodes come from PartyMakr's local postcode directory.
 const POSTCODE_RADIUS_M = 450;
 
 export type PostcodeGroup = {
@@ -146,12 +151,13 @@ export default function PartyMap({
   radiusKm?: number;
   admin?: boolean;
 }) {
-  const cached = readPos();
-  const [center, setCenter] = useState<[number, number] | null>(cached);
+  const [cached] = useState(readPos);
+  const [center, setCenter] = useState<[number, number]>(cached ?? FALLBACK);
   const [me, setMe] = useState<[number, number] | null>(cached);
   const [parties, setParties] = useState<NearbyParty[]>([]);
   const [base, setBase] = useState<"satellite" | "dark">("satellite");
   const [locating, setLocating] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchError, setSearchError] = useState(false);
@@ -166,29 +172,68 @@ export default function PartyMap({
   );
   const [sheet, setSheet] = useState<PostcodeGroup | null>(null);
 
-  // Resolve each party's postcode + each postcode's town centre (both cached
-  // in lib/postcode, so revisits are instant and offline-safe).
+  // New parties already carry their public postcode centre from the database.
+  // Legacy rows fall back to one DAWA lookup per unique rounded coordinate.
   useEffect(() => {
     let active = true;
     (async () => {
-      const entries = await Promise.all(
-        parties.map(
-          async (p) => [p.id, await reversePostcode(p.lat, p.lon)] as const,
+      const refs: Record<string, PostcodeRef | null> = {};
+      const centers: Record<string, [number, number]> = {};
+      const legacyCoordinates = new Map<string, NearbyParty[]>();
+
+      for (const party of parties) {
+        if (
+          party.postcode &&
+          party.postcode_name &&
+          party.postcode_lat != null &&
+          party.postcode_lng != null
+        ) {
+          refs[party.id] = {
+            nr: party.postcode,
+            navn: party.postcode_name,
+          };
+          centers[party.postcode] = [party.postcode_lat, party.postcode_lng];
+          continue;
+        }
+
+        const key = `${party.lat.toFixed(3)},${party.lon.toFixed(3)}`;
+        legacyCoordinates.set(key, [
+          ...(legacyCoordinates.get(key) ?? []),
+          party,
+        ]);
+      }
+
+      const legacyEntries = await Promise.all(
+        [...legacyCoordinates.values()].map(async (matchingParties) => {
+          const first = matchingParties[0];
+          const ref = await reversePostcode(first.lat, first.lon);
+          return { matchingParties, ref };
+        }),
+      );
+
+      for (const { matchingParties, ref } of legacyEntries) {
+        for (const party of matchingParties) refs[party.id] = ref;
+      }
+      if (!active) return;
+      setPcByParty(refs);
+
+      const missingCenterPostcodes = [
+        ...new Set(
+          Object.values(refs).flatMap((ref) =>
+            ref && !centers[ref.nr] ? [ref.nr] : [],
+          ),
+        ),
+      ];
+      const legacyCenters = await Promise.all(
+        missingCenterPostcodes.map(
+          async (nr) => [nr, await lookupPostcode(nr)] as const,
         ),
       );
       if (!active) return;
-      setPcByParty(Object.fromEntries(entries));
-
-      const nrs = [...new Set(entries.flatMap(([, r]) => (r ? [r.nr] : [])))];
-      const centers = await Promise.all(
-        nrs.map(async (nr) => [nr, await lookupPostcode(nr)] as const),
-      );
-      if (!active) return;
-      const next: Record<string, [number, number]> = {};
-      for (const [nr, hit] of centers) {
-        if (hit) next[nr] = [hit.lat, hit.lng];
+      for (const [nr, hit] of legacyCenters) {
+        if (hit) centers[nr] = [hit.lat, hit.lng];
       }
-      setPcCenters((prev) => ({ ...prev, ...next }));
+      setPcCenters(centers);
     })();
     return () => {
       active = false;
@@ -222,11 +267,17 @@ export default function PartyMap({
 
   const loadParties = useCallback(
     async (lat: number, lng: number) => {
-      const { data } = await supabase.rpc("nearby_parties", {
+      const { data, error } = await supabase.rpc("nearby_parties", {
         lat,
         lng,
         radius_m: Math.round(radiusKm * 1000),
       });
+      if (error) {
+        setParties([]);
+        setMapError("Festerne kunne ikke hentes. Prøv igen om lidt.");
+        return;
+      }
+      setMapError(null);
       setParties((data ?? []) as NearbyParty[]);
       setSheet(null); // the open list may no longer match the loaded area
     },
@@ -238,11 +289,14 @@ export default function PartyMap({
     if (loaded.current) return;
     loaded.current = true;
 
+    const startingPoint = readPos() ?? FALLBACK;
+    void loadParties(startingPoint[0], startingPoint[1]);
+
     const onPos = (lat: number, lng: number, isMe: boolean) => {
       // Initial render uses `center`; once the map is mounted, fly to the user
       // so we always end up at their real location (even if we opened at a
       // cached spot or the user only just granted permission).
-      setCenter((c) => c ?? [lat, lng]);
+      setCenter([lat, lng]);
       if (isMe) {
         setMe([lat, lng]);
         writePos(lat, lng);
@@ -254,10 +308,7 @@ export default function PartyMap({
       loadParties(lat, lng);
     };
 
-    const applyFallback = () => {
-      const fb = readPos() ?? FALLBACK;
-      onPos(fb[0], fb[1], false);
-    };
+    const applyFallback = () => setCenter(startingPoint);
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       applyFallback();
@@ -342,14 +393,6 @@ export default function PartyMap({
     return () => setMapApi(null);
   }, [admin]);
 
-  if (!center) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-300">
-        Finder din placering…
-      </div>
-    );
-  }
-
   return (
     <>
       <MapContainer
@@ -371,8 +414,8 @@ export default function PartyMap({
           attribution={TILES[base].attribution}
           subdomains={TILES[base].subdomains}
           maxZoom={MAX_ZOOM}
-          keepBuffer={4}
-          updateWhenIdle={false}
+          keepBuffer={2}
+          updateWhenIdle
         />
 
         {me ? <Marker position={me} icon={meIcon} interactive={false} /> : null}
@@ -395,6 +438,15 @@ export default function PartyMap({
         ))}
 
       </MapContainer>
+
+      {mapError ? (
+        <div
+          role="alert"
+          className="absolute left-1/2 top-5 z-[1000] -translate-x-1/2 rounded-xl border border-red-300/30 bg-[#2a1714]/90 px-4 py-2 text-center text-sm text-red-100 shadow-lg backdrop-blur-md"
+        >
+          {mapError}
+        </div>
+      ) : null}
 
       {/* Postcode search — jump the map to any Danish city. Stacked above the
           locate button. */}

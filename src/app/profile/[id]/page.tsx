@@ -2,9 +2,10 @@
 // Reads only from `profiles` (RLS: readable by all authenticated users).
 
 import { notFound, redirect } from "next/navigation";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Star } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { Avatar } from "@/components/friends/avatar";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { BackButton } from "@/components/back-button";
@@ -37,13 +38,11 @@ export default async function ProfilePage({
   // Only allow internal paths as the back target.
   const backHref = from && from.startsWith("/") ? from : "/dashboard";
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // Din egen profil redigeres under Indstillinger — vis den bare her også.
-  const [{ data }, { data: ageData }] = await Promise.all([
+  const [{ data }, { data: ageData }, { data: ratingRows }] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -53,6 +52,7 @@ export default async function ProfilePage({
       .maybeSingle(),
     // Age (not the birthdate) is exposed via a definer RPC.
     supabase.rpc("get_profile_age", { p_id: id }),
+    supabase.rpc("get_profile_rating_summary", { p_profile_id: id }),
   ]);
   const profile = data as Profile | null;
   if (!profile) notFound();
@@ -64,6 +64,9 @@ export default async function ProfilePage({
     "da-DK",
     { month: "long", year: "numeric" },
   );
+  const rating = Array.isArray(ratingRows) ? ratingRows[0] : ratingRows;
+  const hostCount = Number(rating?.host_count ?? 0);
+  const guestCount = Number(rating?.guest_count ?? 0);
 
   return (
     <main className="pb-nav flex flex-1 flex-col px-5 py-5">
@@ -103,12 +106,30 @@ export default async function ProfilePage({
           Registreret siden {memberSince}
         </p>
 
+        {hostCount || guestCount ? (
+          <div className="mt-5 grid w-full max-w-xs grid-cols-2 gap-2">
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <p className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-200">
+                <Star size={15} fill="currentColor" />
+                {Number(rating.host_average ?? 0).toFixed(1)}
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">Vært · {hostCount}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <p className="flex items-center justify-center gap-1 text-sm font-semibold text-amber-200">
+                <Star size={15} fill="currentColor" />
+                {Number(rating.guest_average ?? 0).toFixed(1)}
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">Gæst · {guestCount}</p>
+            </div>
+          </div>
+        ) : null}
+
         {/* TODO: venne-status + "Tilføj ven"-knap. Genbrug logikken fra
             src/lib/friends/actions.ts (sendFriendRequest + Relationship-
             typen fra searchUsers) og knapperne fra src/app/friends/page.tsx. */}
 
-        {/* TODO (senere, kræver ny RLS/RPC): fælles venner, antal fester
-            personen har deltaget i / været vært for, ratings (jf. roadmap). */}
+        {/* TODO (senere): fælles venner og antal afholdte/deltagne fester. */}
       </div>
     </main>
   );

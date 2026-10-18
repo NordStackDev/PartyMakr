@@ -7,7 +7,7 @@ import { requirePermission } from "@/lib/admin/guard";
 import { UserEditor } from "@/components/admin/user-editor";
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return "Ikke oplyst";
   return new Date(value).toLocaleString("da-DK", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -46,7 +46,7 @@ export default async function AdminUserDetailPage({
     notFound();
   }
 
-  const email = authUser.user.email ?? "—";
+  const email = authUser.user.email ?? "Ikke oplyst";
   const emailConfirmed = !!authUser.user.email_confirmed_at;
   const banned = !!profile.banned_at;
   const verified = !!profile.verified;

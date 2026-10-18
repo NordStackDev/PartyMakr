@@ -28,8 +28,10 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // Refreshes the session and writes new auth cookies onto the response.
-  await supabase.auth.getUser();
+  // Verifies the JWT and refreshes expired sessions. With asymmetric signing
+  // keys this is verified locally after the JWKS is cached, avoiding an Auth
+  // API round-trip on every navigation.
+  await supabase.auth.getClaims();
 
   return response;
 }
@@ -37,6 +39,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Skip the session-refresh round-trip on static + PWA assets that never need auth.
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|api/postcodes|favicon.ico|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

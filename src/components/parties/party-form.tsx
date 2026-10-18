@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { type CreatePartyState } from "@/lib/parties/actions";
 import { lookupPostcode } from "@/lib/postcode";
@@ -49,6 +49,7 @@ export function PartyForm({
   pendingLabel,
   ticketPriceDkk = 0,
   marketplace = false,
+  strictCreate = false,
 }: {
   action: (
     state: CreatePartyState,
@@ -61,6 +62,8 @@ export function PartyForm({
   ticketPriceDkk?: number;
   /** Marketplace mode: the host sets their own ticket price. */
   marketplace?: boolean;
+  /** New parties need complete operational details; legacy edits stay compatible. */
+  strictCreate?: boolean;
 }) {
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(
     defaults?.lat != null && defaults?.lng != null
@@ -80,6 +83,8 @@ export function PartyForm({
   const [pcCenter, setPcCenter] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   // React 19 auto-resets uncontrolled fields when the action finishes — also
   // on error. The action echoes the submitted input back in state.values, and
@@ -121,14 +126,31 @@ export function PartyForm({
       ) : null}
 
       <label className="block">
-        <span className="auth-label">Titel</span>
+        <span className="auth-label">Titel{strictCreate ? " *" : ""}</span>
         <input
+          ref={titleRef}
           name="title"
           required
           maxLength={120}
           defaultValue={v?.title ?? defaults?.title ?? ""}
           className={`auth-input ${state.fieldErrors?.title ? "border-red-400/60" : ""}`}
         />
+        {strictCreate ? (
+          <div className="mt-2 flex flex-wrap gap-2" aria-label="Forslag til festtitel">
+            {["Fredagsfest", "Forfest", "Hyggeaften", "Bytur"].map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => {
+                  if (titleRef.current) titleRef.current.value = suggestion;
+                }}
+                className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {state.fieldErrors?.title ? (
           <span className="mt-1 block text-sm text-red-300">
             {state.fieldErrors.title}
@@ -137,13 +159,34 @@ export function PartyForm({
       </label>
 
       <label className="block">
-        <span className="auth-label">Beskrivelse</span>
+        <span className="auth-label">Beskrivelse{strictCreate ? " *" : ""}</span>
         <textarea
+          ref={descriptionRef}
           name="description"
           rows={3}
+          required={strictCreate}
           defaultValue={v?.description ?? defaults?.description ?? ""}
-          className="auth-input resize-none"
+          className={`auth-input resize-none ${state.fieldErrors?.description ? "border-red-400/60" : ""}`}
         />
+        {strictCreate ? (
+          <div className="mt-2 flex flex-wrap gap-2" aria-label="Forslag til beskrivelse">
+            {["Musik, hygge og gode mennesker.", "Vi mødes til drinks før byturen.", "Tag en ven med og kom forbi."].map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => {
+                  if (descriptionRef.current) descriptionRef.current.value = suggestion;
+                }}
+                className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-zinc-200 transition hover:bg-white/5"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {state.fieldErrors?.description ? (
+          <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.description}</span>
+        ) : null}
       </label>
 
       <div>
@@ -224,15 +267,19 @@ export function PartyForm({
         </span>
         <input
           name="address"
+          required={strictCreate}
           defaultValue={v?.address ?? defaults?.address ?? ""}
-          className="auth-input"
+          className={`auth-input ${state.fieldErrors?.address ? "border-red-400/60" : ""}`}
         />
+        {state.fieldErrors?.address ? (
+          <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.address}</span>
+        ) : null}
       </label>
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
-          <span className="auth-label">Starter</span>
-          <DateTimeField name="starts_at" defaultValue={defaults?.startsAt ?? undefined} />
+          <span className="auth-label">Starter{strictCreate ? " *" : ""}</span>
+          <DateTimeField name="starts_at" defaultValue={defaults?.startsAt ?? undefined} required={strictCreate} />
           {state.fieldErrors?.starts_at ? (
             <span className="mt-1 block text-sm text-red-300">
               {state.fieldErrors.starts_at}
@@ -240,8 +287,11 @@ export function PartyForm({
           ) : null}
         </label>
         <label className="block">
-          <span className="auth-label">Slutter (valgfri)</span>
-          <DateTimeField name="ends_at" defaultValue={defaults?.endsAt ?? undefined} />
+          <span className="auth-label">Slutter{strictCreate ? " *" : " (valgfri)"}</span>
+          <DateTimeField name="ends_at" defaultValue={defaults?.endsAt ?? undefined} required={strictCreate} />
+          {state.fieldErrors?.ends_at ? (
+            <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.ends_at}</span>
+          ) : null}
         </label>
       </div>
 
@@ -270,16 +320,24 @@ export function PartyForm({
           </select>
         </label>
         <label className="block">
-          <span className="auth-label">Kapacitet (valgfri)</span>
-          <input
-            type="number"
+          <span className="auth-label">Kapacitet{strictCreate ? " *" : " (valgfri)"}</span>
+          <select
             name="capacity"
-            min={1}
-            inputMode="numeric"
-            placeholder="Ubegrænset"
-            defaultValue={v?.capacity ?? defaults?.capacity ?? ""}
-            className="auth-input"
-          />
+            required={strictCreate}
+            defaultValue={v?.capacity ?? (defaults?.capacity == null ? (strictCreate ? "20" : "") : String(defaults.capacity))}
+            className={`auth-input ${state.fieldErrors?.capacity ? "border-red-400/60" : ""}`}
+          >
+            {!strictCreate ? <option value="">Ubegrænset</option> : null}
+            <option value="10">10 gæster</option>
+            <option value="20">20 gæster (anbefalet)</option>
+            <option value="30">30 gæster</option>
+            <option value="50">50 gæster</option>
+            <option value="100">100 gæster</option>
+            <option value="unlimited">Ubegrænset</option>
+          </select>
+          {state.fieldErrors?.capacity ? (
+            <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.capacity}</span>
+          ) : null}
         </label>
       </div>
 

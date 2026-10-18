@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "PartyMakr",
     short_name: "PartyMakr",
-    description: "Find fester i nærheden af dig — på et kort, ikke et feed.",
+    description: "Find fester i nærheden af dig på et kort, ikke i et feed.",
     start_url: "/",
     scope: "/",
     display: "standalone",

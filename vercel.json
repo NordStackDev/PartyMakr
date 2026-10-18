@@ -2,7 +2,15 @@
   "crons": [
     {
       "path": "/api/payouts/release",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/accounts/purge",
+      "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/reviews/remind",
+      "schedule": "30 3 * * *"
     }
   ]
 }

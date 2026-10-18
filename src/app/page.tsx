@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { Brand } from "@/components/brand";
+import { FreeFirstYearNotice } from "@/components/free-first-year-notice";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (user) {
     redirect("/dashboard");
   }
@@ -20,6 +18,10 @@ export default async function HomePage() {
       <p className="mt-4 max-w-xs text-base text-zinc-200">
         Find fester i nærheden af dig. Hvis du mangler noget socialt, så er det her stedet for dig. Opret en konto og kom i gang!
       </p>
+
+      <div className="mt-5 w-full max-w-xs">
+        <FreeFirstYearNotice />
+      </div>
 
       <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
         <Link href="/signup" className="btn-primary">

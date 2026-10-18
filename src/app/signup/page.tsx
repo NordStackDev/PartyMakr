@@ -2,10 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signUp } from "@/lib/auth/actions";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/user";
 import { SubmitButton } from "@/components/submit-button";
 import { Turnstile } from "@/components/auth/turnstile";
 import { Brand } from "@/components/brand";
+import { FreeFirstYearNotice } from "@/components/free-first-year-notice";
 
 type SearchParams = Promise<{ error?: string }>;
 
@@ -14,10 +15,7 @@ export default async function SignupPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (user) {
     redirect("/dashboard");
   }
@@ -28,7 +26,8 @@ export default async function SignupPage({
     <main className="flex flex-1 flex-col justify-center px-6 py-12">
       <Brand tagline="Find fester i nærheden af dig." />
 
-      <div className="mx-auto mt-8 w-full max-w-sm">
+      <div className="mx-auto mt-6 w-full max-w-sm">
+        <FreeFirstYearNotice />
         <h1 className="text-xl font-semibold tracking-tight text-white">
           Opret din konto
         </h1>

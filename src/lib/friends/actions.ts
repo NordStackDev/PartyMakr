@@ -106,36 +106,27 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
   const q = query.replace(/[,()%]/g, "").trim();
   if (q.length < 1) return [];
 
-  const { supabase, userId } = await me();
+  const { supabase } = await me();
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, display_name, username, avatar_url")
-    .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
-    .neq("id", userId)
-    .limit(20);
+  const { data, error } = await supabase.rpc(
+    "search_users_with_relationship",
+    { p_query: q, p_limit: 20 },
+  );
+  if (error) return [];
 
-  const list = profiles ?? [];
-  if (list.length === 0) return [];
+  const profiles = (data ?? []) as {
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    relationship: Relationship;
+  }[];
 
-  const { data: links } = await supabase
-    .from("friendships")
-    .select("requester_id, addressee_id, status")
-    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`);
-
-  const rel = new Map<string, Relationship>();
-  for (const l of links ?? []) {
-    const other = l.requester_id === userId ? l.addressee_id : l.requester_id;
-    if (l.status === "accepted") rel.set(other, "friends");
-    else if (l.requester_id === userId) rel.set(other, "outgoing");
-    else rel.set(other, "incoming");
-  }
-
-  return list.map((p) => ({
-    id: p.id,
-    display_name: p.display_name,
-    username: p.username,
-    avatar_url: p.avatar_url,
-    status: rel.get(p.id) ?? "none",
+  return profiles.map((profile) => ({
+    id: profile.id,
+    display_name: profile.display_name,
+    username: profile.username,
+    avatar_url: profile.avatar_url,
+    status: profile.relationship,
   }));
 }

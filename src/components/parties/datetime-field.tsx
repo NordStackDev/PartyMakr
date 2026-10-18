@@ -22,9 +22,11 @@ function blurOnTouch(e: React.FocusEvent<HTMLInputElement>) {
 export function DateTimeField({
   name,
   defaultValue,
+  required = false,
 }: {
   name: string;
   defaultValue?: string;
+  required?: boolean;
 }) {
   const [date, setDate] = useState<Date | null>(
     defaultValue ? new Date(defaultValue) : null,
@@ -44,6 +46,7 @@ export function DateTimeField({
         placeholderText="Vælg dato og tid"
         wrapperClassName="block w-full"
         className="auth-input"
+        required={required}
         withPortal
         onFocus={blurOnTouch}
       />

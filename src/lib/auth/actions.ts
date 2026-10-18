@@ -49,12 +49,15 @@ export async function signIn(formData: FormData) {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("banned_at")
+    .select("banned_at, deletion_requested_at")
       .eq("id", user.id)
       .single();
     if (profile?.banned_at) {
       await supabase.auth.signOut();
       withError("/login", "Din konto er blokeret.");
+    }
+    if (profile?.deletion_requested_at) {
+      redirect("/restore-account");
     }
   }
 

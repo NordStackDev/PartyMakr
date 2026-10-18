@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ticketPriceDkk } from "@/lib/stripe/client";
 import { isMarketplace } from "@/lib/payments/mode";
+import { lookupPostcodeLocal } from "@/lib/postcode-data.server";
 import {
   findGroupReference,
   findSoloReference,
@@ -24,9 +25,13 @@ function str(formData: FormData, key: string): string {
 
 export type PartyFieldErrors = {
   title?: string;
+  description?: string;
   postcode?: string;
   location?: string;
+  address?: string;
   starts_at?: string;
+  ends_at?: string;
+  capacity?: string;
 };
 
 /** Everything the user typed, echoed back on error. React 19 auto-resets
@@ -96,6 +101,12 @@ function genderTarget(formData: FormData): string | null {
   return v === "male" || v === "female" || v === "other" ? v : null;
 }
 
+function capacityValue(raw: string): number | null {
+  if (!raw || raw === "unlimited") return null;
+  const value = Number(raw);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
 /**
  * Create a party. Location comes from the postcode's town centre or the map
  * pin (optional fine-tuning). Inserts via the create_party RPC (handles the
@@ -121,41 +132,67 @@ export async function createParty(
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
+  const endsAtRaw = str(formData, "ends_at").trim();
   const postcode = str(formData, "postcode").trim();
+  const description = str(formData, "description").trim();
+  const address = str(formData, "address").trim();
+  const capacityRaw = str(formData, "capacity").trim();
+  const startsDate = startsAt ? new Date(startsAt) : null;
+  const endsDate = endsAtRaw ? new Date(endsAtRaw) : null;
+  let postcodeHit = null as ReturnType<typeof lookupPostcodeLocal>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
+  if (!description) fieldErrors.description = "Beskriv kort, hvad gæsterne kan glæde sig til.";
   if (!/^\d{4}$/.test(postcode)) {
     fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
+  } else {
+    postcodeHit = lookupPostcodeLocal(postcode);
+    if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
   }
   if (!latRaw || !lngRaw || !Number.isFinite(lat) || !Number.isFinite(lng)) {
     fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
   }
-  if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
+  if (!startsDate || Number.isNaN(startsDate.getTime())) {
+    fieldErrors.starts_at = "Vælg en gyldig startdato og -tid.";
+  }
+  if (!endsDate || Number.isNaN(endsDate.getTime())) {
+    fieldErrors.ends_at = "Vælg hvornår festen slutter.";
+  } else if (startsDate && endsDate <= startsDate) {
+    fieldErrors.ends_at = "Sluttidspunktet skal ligge efter starttidspunktet.";
+  }
+  if (!address) fieldErrors.address = "Angiv adressen, som godkendte gæster får at se.";
+  if (!capacityRaw) {
+    fieldErrors.capacity = "Vælg hvor mange gæster der er plads til.";
+  } else if (capacityRaw !== "unlimited" && capacityValue(capacityRaw) == null) {
+    fieldErrors.capacity = "Vælg en gyldig kapacitet.";
+  }
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, values: readValues(formData) };
   }
 
-  const capacityRaw = str(formData, "capacity").trim();
   const minAgeRaw = str(formData, "min_age").trim();
-  const endsAtRaw = str(formData, "ends_at").trim();
   const price = resolvePrice(formData);
 
   const { data, error } = await supabase.rpc("create_party", {
     p_title: title,
-    p_description: str(formData, "description").trim(),
+    p_description: description,
     p_lat: lat,
     p_lng: lng,
-    p_address: str(formData, "address").trim(),
-    p_starts_at: new Date(startsAt).toISOString(),
-    p_ends_at: endsAtRaw ? new Date(endsAtRaw).toISOString() : null,
+    p_address: address,
+    p_starts_at: startsDate!.toISOString(),
+    p_ends_at: endsDate!.toISOString(),
     p_visibility:
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
-    p_capacity: capacityRaw ? Number(capacityRaw) : null,
+    p_capacity: capacityValue(capacityRaw),
     p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
+    p_postcode: postcodeHit!.nr,
+    p_postcode_name: postcodeHit!.navn,
+    p_postcode_lat: postcodeHit!.lat,
+    p_postcode_lng: postcodeHit!.lng,
   });
 
   if (error || !data) {
@@ -193,6 +230,8 @@ export async function updateParty(
   const lat = Number(latRaw);
   const lng = Number(lngRaw);
   const startsAt = str(formData, "starts_at");
+  const postcode = str(formData, "postcode").trim();
+  let postcodeHit = null as ReturnType<typeof lookupPostcodeLocal>;
 
   const fieldErrors: PartyFieldErrors = {};
   if (!title) fieldErrors.title = "Giv festen en titel.";
@@ -200,6 +239,14 @@ export async function updateParty(
     fieldErrors.location = "Angiv et postnummer eller vælg en placering på kortet.";
   }
   if (!startsAt) fieldErrors.starts_at = "Vælg hvornår festen starter.";
+  if (postcode) {
+    if (!/^\d{4}$/.test(postcode)) {
+      fieldErrors.postcode = "Angiv byens postnummer (4 cifre).";
+    } else {
+      postcodeHit = lookupPostcodeLocal(postcode);
+      if (!postcodeHit) fieldErrors.postcode = "Postnummeret blev ikke fundet.";
+    }
+  }
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, values: readValues(formData) };
   }
@@ -233,10 +280,14 @@ export async function updateParty(
     p_visibility:
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
-    p_capacity: capacityRaw ? Number(capacityRaw) : null,
+    p_capacity: capacityValue(capacityRaw),
     p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
+    p_postcode: postcodeHit?.nr ?? null,
+    p_postcode_name: postcodeHit?.navn ?? null,
+    p_postcode_lat: postcodeHit?.lat ?? null,
+    p_postcode_lng: postcodeHit?.lng ?? null,
   });
 
   if (error) {
