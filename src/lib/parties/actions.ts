@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { ticketPriceDkk } from "@/lib/stripe/client";
-import { isMarketplace } from "@/lib/payments/mode";
 import { lookupPostcodeLocal } from "@/lib/postcode-data.server";
 import {
   findGroupReference,
@@ -45,12 +43,14 @@ export type PartyFormValues = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: string;
-  /** Platform mode: "on" when the paid-party checkbox is ticked. */
-  paid: string;
-  /** Marketplace mode: the host's own ticket price. */
-  entre_dkk: string;
   min_age: string;
   gender_target: string;
+  age_group: string;
+  theme: string;
+  music: string;
+  alcohol_policy: string;
+  dress_code: string;
+  gender_mix: string;
 };
 
 export type CreatePartyState = {
@@ -77,23 +77,41 @@ function readValues(formData: FormData): PartyFormValues {
     visibility: str(formData, "visibility") === "private" ? "private" : "public",
     venue_type: venueType(formData),
     capacity: str(formData, "capacity"),
-    paid: str(formData, "paid"),
-    entre_dkk: str(formData, "entre_dkk"),
     min_age: str(formData, "min_age"),
     gender_target: str(formData, "gender_target"),
+    age_group: str(formData, "age_group"),
+    theme: str(formData, "theme"),
+    music: str(formData, "music"),
+    alcohol_policy: str(formData, "alcohol_policy"),
+    dress_code: str(formData, "dress_code"),
+    gender_mix: str(formData, "gender_mix"),
   };
 }
 
-/** The party's price. Platform mode: checkbox + the platform's uniform price
- * (never client-supplied). Marketplace mode: the host's own ticket price. */
-function resolvePrice(formData: FormData): number | null {
-  if (isMarketplace()) {
-    const raw = Number(str(formData, "entre_dkk").trim());
-    return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
-  }
-  const paid = str(formData, "paid") === "on";
-  const price = ticketPriceDkk();
-  return paid && price > 0 ? price : null;
+function validPartyInfo(formData: FormData): boolean {
+  return (
+    str(formData, "age_group").trim().length <= 60 &&
+    str(formData, "theme").trim().length <= 80 &&
+    str(formData, "music").trim().length <= 100 &&
+    str(formData, "dress_code").trim().length <= 80 &&
+    ["", "no_alcohol", "provided", "bring_your_own"].includes(
+      str(formData, "alcohol_policy"),
+    ) &&
+    ["", "mixed", "mostly_women", "mostly_men", "unknown"].includes(
+      str(formData, "gender_mix"),
+    )
+  );
+}
+
+function partyInfoArgs(formData: FormData) {
+  return {
+    p_age_group: str(formData, "age_group").trim() || null,
+    p_theme: str(formData, "theme").trim() || null,
+    p_music: str(formData, "music").trim() || null,
+    p_alcohol_policy: str(formData, "alcohol_policy") || null,
+    p_dress_code: str(formData, "dress_code").trim() || null,
+    p_gender_mix: str(formData, "gender_mix") || null,
+  };
 }
 
 function genderTarget(formData: FormData): string | null {
@@ -170,9 +188,14 @@ export async function createParty(
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, values: readValues(formData) };
   }
+  if (!validPartyInfo(formData)) {
+    return {
+      error: "Tjek festens oplysninger. Nogle felter er for lange eller ugyldige.",
+      values: readValues(formData),
+    };
+  }
 
   const minAgeRaw = str(formData, "min_age").trim();
-  const price = resolvePrice(formData);
 
   const { data, error } = await supabase.rpc("create_party", {
     p_title: title,
@@ -186,13 +209,13 @@ export async function createParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityValue(capacityRaw),
-    p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
     p_postcode: postcodeHit!.nr,
     p_postcode_name: postcodeHit!.navn,
     p_postcode_lat: postcodeHit!.lat,
     p_postcode_lng: postcodeHit!.lng,
+    ...partyInfoArgs(formData),
   });
 
   if (error || !data) {
@@ -250,23 +273,16 @@ export async function updateParty(
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors, values: readValues(formData) };
   }
+  if (!validPartyInfo(formData)) {
+    return {
+      error: "Tjek festens oplysninger. Nogle felter er for lange eller ugyldige.",
+      values: readValues(formData),
+    };
+  }
 
   const capacityRaw = str(formData, "capacity").trim();
   const minAgeRaw = str(formData, "min_age").trim();
   const endsAtRaw = str(formData, "ends_at").trim();
-  // Platform mode keeps the party's frozen platform price if it already had
-  // one; marketplace mode takes the host's own price from the form.
-  let price = resolvePrice(formData);
-  if (!isMarketplace() && price != null) {
-    const { data: existing } = await supabase
-      .from("parties")
-      .select("entre_dkk")
-      .eq("id", partyId)
-      .maybeSingle();
-    if (existing?.entre_dkk && existing.entre_dkk > 0) {
-      price = existing.entre_dkk;
-    }
-  }
 
   const { error } = await supabase.rpc("update_party", {
     p_id: partyId,
@@ -281,13 +297,13 @@ export async function updateParty(
       str(formData, "visibility") === "private" ? "private" : "public",
     p_venue_type: venueType(formData),
     p_capacity: capacityValue(capacityRaw),
-    p_entre_dkk: price,
     p_min_age: minAgeRaw ? Number(minAgeRaw) : null,
     p_gender_target: genderTarget(formData),
     p_postcode: postcodeHit?.nr ?? null,
     p_postcode_name: postcodeHit?.navn ?? null,
     p_postcode_lat: postcodeHit?.lat ?? null,
     p_postcode_lng: postcodeHit?.lng ?? null,
+    ...partyInfoArgs(formData),
   });
 
   if (error) {
@@ -302,11 +318,9 @@ export async function updateParty(
   redirect(`/parties/${partyId}`);
 }
 
-/** Delete (cancel) a party — host only, enforced by RLS. All completed entré
- * payments are refunded FIRST (guests must never lose money to a cancelled
- * party — in escrow mode the funds are still on the platform, so this always
- * succeeds). Cascades then clean up invites, attendees, requests and chat; a
- * DB trigger notifies the guests. */
+/** Delete (cancel) a party — host only, enforced by RLS. Refund any historic
+ * completed payments first. Cascades then clean up invites, attendees,
+ * requests and chat; a DB trigger notifies the guests. */
 export async function deleteParty(partyId: string) {
   const supabase = await createClient();
   const {
@@ -369,7 +383,7 @@ export async function requestJoin(partyId: string) {
 }
 
 /** Withdraw a join request (also clears a declined one so you can re-ask).
- * On a paid party the request was prepaid — withdrawing refunds the guest. */
+ * Refund any linked historic payment if one exists. */
 export async function cancelJoinRequest(partyId: string) {
   const supabase = await createClient();
   const {
@@ -559,29 +573,6 @@ export async function cancelGroup(
 
   revalidatePath(`/parties/${partyId}`);
   return {};
-}
-
-/** Marketplace escrow: a going, paid guest reports that the party never
- * happened. RLS enforces attendee+started; an open claim blocks the host's
- * payout until it is resolved. */
-export async function filePartyClaim(partyId: string, reason: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { error } = await supabase.from("party_claims").insert({
-    party_id: partyId,
-    user_id: user.id,
-    reason: reason.trim() || null,
-  });
-  // 23505 = already claimed — treat as success.
-  if (error && error.code !== "23505") {
-    throw new Error("Kunne ikke indsende anmeldelsen.");
-  }
-
-  revalidatePath(`/parties/${partyId}`);
 }
 
 /** Withdraw an RSVP / cancel attendance. Also clears any join request so the

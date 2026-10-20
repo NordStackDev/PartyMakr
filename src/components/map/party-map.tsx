@@ -38,9 +38,14 @@ export type NearbyParty = {
   ends_at: string | null;
   visibility: "public" | "private";
   capacity: number | null;
-  entre_dkk: number | null;
   min_age: number | null;
   gender_target: string | null;
+  age_group: string | null;
+  theme: string | null;
+  music: string | null;
+  alcohol_policy: string | null;
+  dress_code: string | null;
+  gender_mix: string | null;
   going_count: number;
   lon: number;
   lat: number;

@@ -5,9 +5,8 @@ import { stripe } from "@/lib/stripe/client";
 import { settleCheckoutSession } from "@/lib/stripe/settle";
 
 /**
- * Stripe webhook: settle payments the moment Checkout completes, so attendance
- * confirms even if the guest never returns to the app. Signature-verified;
- * idempotent (settle no-ops on already-completed payments).
+ * Historic Stripe webhook: settle Checkout sessions created before entry
+ * payments were removed from the app. Signature-verified and idempotent.
  */
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;

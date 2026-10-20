@@ -4,8 +4,6 @@ import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import { updateParty } from "@/lib/parties/actions";
-import { ticketPriceDkk } from "@/lib/stripe/client";
-import { isMarketplace } from "@/lib/payments/mode";
 import { PartyForm } from "@/components/parties/party-form";
 
 type Party = {
@@ -19,9 +17,14 @@ type Party = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: number | null;
-  entre_dkk: number | null;
   min_age: number | null;
   gender_target: string | null;
+  age_group: string | null;
+  theme: string | null;
+  music: string | null;
+  alcohol_policy: string | null;
+  dress_code: string | null;
+  gender_mix: string | null;
   lon: number;
   lat: number;
 };
@@ -66,14 +69,17 @@ export default async function EditPartyPage({
             visibility: party.visibility,
             venueType: party.venue_type,
             capacity: party.capacity,
-            entreDkk: party.entre_dkk,
             minAge: party.min_age,
             genderTarget: party.gender_target,
+            ageGroup: party.age_group,
+            theme: party.theme,
+            music: party.music,
+            alcoholPolicy: party.alcohol_policy,
+            dressCode: party.dress_code,
+            genderMix: party.gender_mix,
           }}
           submitLabel="Gem ændringer"
           pendingLabel="Gemmer…"
-          ticketPriceDkk={ticketPriceDkk()}
-          marketplace={isMarketplace()}
         />
       </div>
     </main>

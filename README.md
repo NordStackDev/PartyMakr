@@ -171,29 +171,11 @@ brand classes live in `src/app/globals.css`.
 > The app UI is in **Danish**; this design reference is kept in English for
 > convenience.
 
-Skrivelse fra det uformelle møde. 
-Man skal kunne sortere på alder fx? 
+## Product notes
 
-Forretningsmodel
-Gæsterne skal betal hvis de gerne vil have vist detaljerne for en specifik fest. 
-
-Kollegier afholder nogen fester fx og gæsterne downloader appen fx for lad os sige en drink eller 2.
-
-Søgemuligheder 
-Alder
-Køn
-Sted
-
-Måske et billede på festen
-
-
-Rate hinadnen på fest vært / fest afholder 
-Rate hinaden som gæst også 
-
-
-Radius på pin til festen, den skal ikke være så nøjagtig. 
-
-
-
-
-Vi skal fjerne, den nøjagtige pin man sætter på opret fest.
+- Party details include participant count, age group, address, theme, music, alcohol, dress code, and gender composition.
+- Exact addresses are shown after the host approves a guest; public map locations stay approximate.
+- Entry fees and entry payments have been removed. Participation is free.
+- Discovery filters for age, gender composition, and location remain product ideas.
+- Party photos remain a possible addition.
+- Host and guest reviews are implemented.

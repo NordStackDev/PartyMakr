@@ -116,7 +116,6 @@ export function PartyClusterSheet({
   // Search + quick filters (only surfaced for busy postcodes, see below).
   const [query, setQuery] = useState("");
   const [dateSel, setDateSel] = useState<DateSel>("all");
-  const [onlyFree, setOnlyFree] = useState(false);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   // Portal to <body> (same pattern as the help guide): rendered inside the
   // map subtree the sheet would stack UNDER the bottom nav and be clipped by
@@ -212,7 +211,7 @@ export function PartyClusterSheet({
   const showFilters = parties.length > FILTER_THRESHOLD;
   const q = query.trim().toLowerCase();
   const filtersActive =
-    q !== "" || dateSel !== "all" || onlyFree || onlyAvailable;
+    q !== "" || dateSel !== "all" || onlyAvailable;
 
   // Filter then sort chronologically (soonest first).
   const shown = useMemo(() => {
@@ -226,7 +225,6 @@ export function PartyClusterSheet({
         }
         if (dateSel === "today" && !isToday(p.starts_at)) return false;
         if (dateSel === "weekend" && !isWeekend(p.starts_at)) return false;
-        if (onlyFree && p.entre_dkk && p.entre_dkk > 0) return false;
         if (onlyAvailable && !hasRoom(p)) return false;
         return true;
       })
@@ -234,7 +232,7 @@ export function PartyClusterSheet({
         (a, b) =>
           new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime(),
       );
-  }, [parties, q, dateSel, onlyFree, onlyAvailable, hosts]);
+  }, [parties, q, dateSel, onlyAvailable, hosts]);
 
   if (!mounted) return null;
 
@@ -318,9 +316,6 @@ export function PartyClusterSheet({
               >
                 Weekend
               </FilterChip>
-              <FilterChip active={onlyFree} onClick={() => setOnlyFree((f) => !f)}>
-                Gratis
-              </FilterChip>
               <FilterChip
                 active={onlyAvailable}
                 onClick={() => setOnlyAvailable((a) => !a)}
@@ -391,11 +386,6 @@ export function PartyClusterSheet({
                 ) : m?.req === "pending" ? (
                   <span className="shrink-0 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
                     Afventer svar
-                  </span>
-                ) : p.entre_dkk && p.entre_dkk > 0 ? (
-                  // Paid: joining + payment happens on the party page (row links).
-                  <span className="shrink-0 rounded-full bg-[var(--brand)]/15 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
-                    {p.entre_dkk} kr.
                   </span>
                 ) : (
                   <button

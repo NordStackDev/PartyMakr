@@ -5,14 +5,11 @@ import {
   Clock,
   Home,
   Lock,
-  MapPin,
   MessageCircle,
   Navigation,
   Pencil,
   ShieldCheck,
-  Ticket,
   Trash2,
-  Users,
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
@@ -26,9 +23,6 @@ import { JoinRequests } from "@/components/parties/join-requests";
 import { HostGroupRequests } from "@/components/parties/host-group-requests";
 import { GroupPanel } from "@/components/parties/group-panel";
 import { VerifyAgeNotice } from "@/components/parties/verify-age-notice";
-import { reconcileByReference } from "@/lib/stripe/settle";
-import { isMarketplace, platformFeeDkk } from "@/lib/payments/mode";
-import { ClaimButton } from "@/components/parties/claim-button";
 import { verifyStartHref } from "@/lib/idura/client";
 import { ageFromDob } from "@/lib/age";
 import { ConfirmButton } from "@/components/friends/confirm-button";
@@ -55,12 +49,28 @@ type Party = {
   visibility: "public" | "private";
   venue_type: "own_place" | "public_spot";
   capacity: number | null;
-  entre_dkk: number | null;
   min_age: number | null;
   gender_target: string | null;
+  age_group: string | null;
+  theme: string | null;
+  music: string | null;
+  alcohol_policy: string | null;
+  dress_code: string | null;
+  gender_mix: string | null;
   lon: number;
   lat: number;
 };
+
+type PartyInfo = Pick<
+  Party,
+  | "capacity"
+  | "age_group"
+  | "theme"
+  | "music"
+  | "alcohol_policy"
+  | "dress_code"
+  | "gender_mix"
+>;
 
 const GENDER_LABEL: Record<string, string> = {
   female: "Kvinder",
@@ -68,21 +78,76 @@ const GENDER_LABEL: Record<string, string> = {
   other: "Andet",
 };
 
+function PartyInfoTags({
+  info,
+  address,
+  participantCount,
+}: {
+  info: PartyInfo | null;
+  address: string | null;
+  participantCount: number;
+}) {
+  if (!info) return null;
+
+  const alcoholLabels: Record<string, string> = {
+    no_alcohol: "Ingen alkohol",
+    provided: "Alkohol serveres",
+    bring_your_own: "Medbring selv",
+  };
+  const genderMixLabels: Record<string, string> = {
+    mixed: "Blandet",
+    mostly_women: "Flest kvinder",
+    mostly_men: "Flest mænd",
+    unknown: "Ikke afklaret",
+  };
+  const tags: [string, string | null][] = [
+    [
+      "Antal deltagere",
+      `${participantCount} deltager${participantCount === 1 ? "" : "e"}${info.capacity ? ` · maks. ${info.capacity}` : ""}`,
+    ],
+    ["Aldersgruppe", info.age_group],
+    ["Adresse", address ?? "Vises efter godkendelse"],
+    ["Tema", info.theme],
+    ["Musik", info.music],
+    [
+      "Alkohol",
+      info.alcohol_policy ? alcoholLabels[info.alcohol_policy] ?? null : null,
+    ],
+    ["Dresscode", info.dress_code],
+    [
+      "Kønssammensætning",
+      info.gender_mix ? genderMixLabels[info.gender_mix] ?? null : null,
+    ],
+  ].filter((tag): tag is [string, string] => Boolean(tag[1]));
+
+  if (!tags.length) return null;
+
+  return (
+    <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <h2 className="text-sm font-semibold text-white">Godt at vide</h2>
+      <dl className="mt-3 flex flex-wrap gap-2">
+        {tags.map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-full border border-white/10 bg-white/5 px-3 py-2"
+          >
+            <dt className="text-[10px] uppercase tracking-wide text-zinc-400">
+              {label}
+            </dt>
+            <dd className="text-sm font-medium text-zinc-100">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export default async function PartyDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ betaling?: string; ref?: string }>;
 }) {
   const { id } = await params;
-  const { betaling, ref } = await searchParams;
-  // Returned from Mollie checkout — reconcile the payment before we render, so
-  // attendance shows as confirmed even if the webhook hasn't fired (localhost).
-  if (betaling === "retur" && ref) {
-    await reconcileByReference(ref).catch(() => {});
-  }
-
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -90,6 +155,7 @@ export default async function PartyDetailPage({
   const { data: rows } = await supabase.rpc("get_party", { p_id: id });
   const party = ((rows ?? []) as Party[])[0];
   if (!party) notFound();
+  const info: PartyInfo = party;
 
   const isHost = party.host_id === user.id;
 
@@ -185,25 +251,6 @@ export default async function PartyDetailPage({
       id: guest.id,
       name: guest.display_name || guest.username || "en gæst",
     }));
-  }
-
-  // Marketplace escrow: a paid, going guest can report a no-show once the
-  // party should have started (an open claim pauses the host's payout).
-  let claimState: { claimed: boolean } | null = null;
-  if (
-    isMarketplace() &&
-    !isHost &&
-    myRsvp === "going" &&
-    party.entre_dkk &&
-    new Date(party.starts_at) < new Date()
-  ) {
-    const { data: myClaim } = await supabase
-      .from("party_claims")
-      .select("status")
-      .eq("party_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    claimState = { claimed: Boolean(myClaim) };
   }
 
   // Just-in-time gate: if this party restricts age/gender and the viewer isn't
@@ -312,12 +359,6 @@ export default async function PartyDetailPage({
             Slutter: {fmt(party.ends_at)}
           </p>
         ) : null}
-        {party.address ? (
-          <p className="flex items-start gap-2 text-zinc-300">
-            <MapPin size={16} className="mt-0.5 shrink-0 text-amber-300" />
-            <span className="min-w-0 break-words">{party.address}</span>
-          </p>
-        ) : null}
         <p className="flex items-center gap-2 text-zinc-200">
           {party.venue_type === "public_spot" ? (
             <Navigation size={16} className="shrink-0 text-amber-300" />
@@ -325,21 +366,6 @@ export default async function PartyDetailPage({
             <Home size={16} className="shrink-0 text-amber-300" />
           )}
           {party.venue_type === "public_spot" ? "Mødes i byen" : "Eget sted"}
-        </p>
-        <p className="flex items-center gap-2 text-zinc-400">
-          <Users size={16} className="shrink-0 text-zinc-400" />
-          {goingCount} kommer
-          {party.capacity ? ` · ${party.capacity} pladser` : ""}
-        </p>
-        <p className="flex items-center gap-2 text-zinc-400">
-          <Ticket size={16} className="shrink-0 text-zinc-400" />
-          {party.entre_dkk
-            ? `${isMarketplace() ? "Billet" : "Entré"}: ${party.entre_dkk} kr. pr. person${
-                platformFeeDkk() > 0
-                  ? ` + ${platformFeeDkk()} kr. platformgebyr`
-                  : ""
-              }`
-            : "Gratis"}
         </p>
         {party.min_age || party.gender_target ? (
           <p className="flex items-center gap-2 text-zinc-400">
@@ -368,6 +394,12 @@ export default async function PartyDetailPage({
           {party.description}
         </p>
       ) : null}
+
+      <PartyInfoTags
+        info={info}
+        address={party.address}
+        participantCount={goingCount}
+      />
 
       <div className="mt-4 h-[clamp(9rem,32vh,14rem)] overflow-hidden rounded-xl border border-white/10">
         <MiniMap lat={party.lat} lng={party.lon} />
@@ -423,19 +455,10 @@ export default async function PartyDetailPage({
                   request={
                     (myRequest?.status as JoinRequestStatus | undefined) ?? null
                   }
-                  entreDkk={party.entre_dkk}
-                  feeDkk={platformFeeDkk()}
                 />
-                <GroupPanel
-                  partyId={party.id}
-                  entreDkk={party.entre_dkk}
-                  feeDkk={platformFeeDkk()}
-                />
+                <GroupPanel partyId={party.id} />
               </>
             )}
-            {claimState ? (
-              <ClaimButton partyId={party.id} claimed={claimState.claimed} />
-            ) : null}
             {myThreadId ? (
               <Link
                 href={`/messages/${myThreadId}`}

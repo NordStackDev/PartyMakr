@@ -32,9 +32,14 @@ export type PartyDefaults = {
   visibility?: "public" | "private" | null;
   venueType?: "own_place" | "public_spot" | null;
   capacity?: number | null;
-  entreDkk?: number | null;
   minAge?: number | null;
   genderTarget?: string | null;
+  ageGroup?: string | null;
+  theme?: string | null;
+  music?: string | null;
+  alcoholPolicy?: string | null;
+  dressCode?: string | null;
+  genderMix?: string | null;
 };
 
 /**
@@ -47,8 +52,6 @@ export function PartyForm({
   defaults,
   submitLabel,
   pendingLabel,
-  ticketPriceDkk = 0,
-  marketplace = false,
   strictCreate = false,
 }: {
   action: (
@@ -58,10 +61,6 @@ export function PartyForm({
   defaults?: PartyDefaults;
   submitLabel: string;
   pendingLabel: string;
-  /** Platform mode: the uniform entré; 0 hides the paid-party option. */
-  ticketPriceDkk?: number;
-  /** Marketplace mode: the host sets their own ticket price. */
-  marketplace?: boolean;
   /** New parties need complete operational details; legacy edits stay compatible. */
   strictCreate?: boolean;
 }) {
@@ -320,7 +319,7 @@ export function PartyForm({
           </select>
         </label>
         <label className="block">
-          <span className="auth-label">Kapacitet{strictCreate ? " *" : " (valgfri)"}</span>
+          <span className="auth-label">Antal deltagere (maks.){strictCreate ? " *" : " (valgfri)"}</span>
           <select
             name="capacity"
             required={strictCreate}
@@ -341,50 +340,93 @@ export function PartyForm({
         </label>
       </div>
 
-      {marketplace ? (
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <div>
+          <h2 className="text-sm font-semibold text-white">Godt at vide om festen</h2>
+          <p className="mt-1 text-xs text-zinc-400">
+            Oplysningerne vises som tags på festens side.
+          </p>
+        </div>
+
         <label className="block">
-          <span className="auth-label">Billetpris pr. person i kr. (valgfri)</span>
+          <span className="auth-label">Aldersgruppe (valgfri)</span>
           <input
-            type="number"
-            name="entre_dkk"
-            min={0}
-            inputMode="numeric"
-            placeholder="Gratis"
-            defaultValue={v?.entre_dkk ?? defaults?.entreDkk ?? ""}
+            name="age_group"
+            maxLength={60}
+            placeholder="Fx 18-25 år eller blandet alder"
+            defaultValue={v?.age_group ?? defaults?.ageGroup ?? ""}
             className="auth-input"
           />
-          <span className="mt-1 block text-xs text-zinc-400">
-            Du fastsætter billetprisen og får den udbetalt efter festen.
-            PartyMakr lægger et separat platformgebyr oven i, som gæsten
-            betaler.
-          </span>
         </label>
-      ) : ticketPriceDkk > 0 || (defaults?.entreDkk ?? 0) > 0 ? (
-        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-          <input
-            type="checkbox"
-            name="paid"
-            defaultChecked={
-              v ? v.paid === "on" : (defaults?.entreDkk ?? 0) > 0
-            }
-            className="mt-0.5 h-4 w-4 accent-[var(--brand)]"
-          />
-          <span className="min-w-0">
-            <span className="block text-sm font-medium text-zinc-100">
-              Fest med entré ({defaults?.entreDkk ?? ticketPriceDkk} kr. pr.
-              person)
-            </span>
-            <span className="mt-0.5 block text-xs text-zinc-400">
-              Gæster betaler entréen, når de anmoder om at deltage. Prisen er
-              fastsat af PartyMakr.
-            </span>
-          </span>
+
+        <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+          <label className="block">
+            <span className="auth-label">Tema (valgfrit)</span>
+            <input
+              name="theme"
+              maxLength={80}
+              placeholder="Fx 00'er-fest"
+              defaultValue={v?.theme ?? defaults?.theme ?? ""}
+              className="auth-input"
+            />
+          </label>
+          <label className="block">
+            <span className="auth-label">Musik (valgfrit)</span>
+            <input
+              name="music"
+              maxLength={100}
+              placeholder="Fx pop, house eller hiphop"
+              defaultValue={v?.music ?? defaults?.music ?? ""}
+              className="auth-input"
+            />
+          </label>
+        </div>
+
+        <label className="block">
+          <span className="auth-label">Alkohol (valgfrit)</span>
+          <select
+            name="alcohol_policy"
+            defaultValue={v?.alcohol_policy ?? defaults?.alcoholPolicy ?? ""}
+            className="auth-input"
+          >
+            <option value="">Ikke oplyst</option>
+            <option value="no_alcohol">Ingen alkohol</option>
+            <option value="provided">Alkohol serveres</option>
+            <option value="bring_your_own">Medbring selv</option>
+          </select>
         </label>
-      ) : null}
+
+        <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+          <label className="block">
+            <span className="auth-label">Dresscode (valgfri)</span>
+            <input
+              name="dress_code"
+              maxLength={80}
+              placeholder="Fx pænt tøj eller 90'er-look"
+              defaultValue={v?.dress_code ?? defaults?.dressCode ?? ""}
+              className="auth-input"
+            />
+          </label>
+          <label className="block">
+            <span className="auth-label">Kønssammensætning (valgfri)</span>
+            <select
+              name="gender_mix"
+              defaultValue={v?.gender_mix ?? defaults?.genderMix ?? ""}
+              className="auth-input"
+            >
+              <option value="">Ikke oplyst</option>
+              <option value="mixed">Blandet</option>
+              <option value="mostly_women">Flest kvinder</option>
+              <option value="mostly_men">Flest mænd</option>
+              <option value="unknown">Ikke afklaret</option>
+            </select>
+          </label>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
         <label className="block">
-          <span className="auth-label">Mindstealder (valgfri)</span>
+          <span className="auth-label">Aldersgrænse for adgang (valgfri)</span>
           <input
             type="number"
             name="min_age"
@@ -400,7 +442,7 @@ export function PartyForm({
           </span>
         </label>
         <label className="block">
-          <span className="auth-label">Målgruppe (køn, valgfri)</span>
+          <span className="auth-label">Adgang for (køn, valgfri)</span>
           <select
             name="gender_target"
             defaultValue={v?.gender_target ?? defaults?.genderTarget ?? ""}

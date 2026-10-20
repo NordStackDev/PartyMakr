@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { Landmark, ShieldCheck } from "lucide-react";
-
+import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/user";
 import {
@@ -10,9 +9,6 @@ import {
 } from "@/lib/profile/actions";
 import { ConfirmButton } from "@/components/friends/confirm-button";
 import { iduraConfigured } from "@/lib/idura/client";
-import { connectStripePayouts, refreshPayoutStatus } from "@/lib/stripe/actions";
-import { stripeConfigured } from "@/lib/stripe/client";
-import { isMarketplace } from "@/lib/payments/mode";
 import { signOut } from "@/lib/auth/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { RadiusSlider } from "@/components/settings/radius-slider";
@@ -29,7 +25,7 @@ function ageFrom(dob: string): number {
   return a;
 }
 
-type SearchParams = Promise<{ saved?: string; error?: string; stripe?: string }>;
+type SearchParams = Promise<{ saved?: string; error?: string }>;
 
 export default async function SettingsPage({
   searchParams,
@@ -40,14 +36,9 @@ export default async function SettingsPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const { saved, error, stripe } = await searchParams;
-  const marketplace = isMarketplace();
-  // Back from Stripe onboarding (marketplace mode) — sync before rendering.
-  if (marketplace && stripe === "retur") {
-    await refreshPayoutStatus(user.id);
-  }
+  const { saved, error } = await searchParams;
 
-  const [{ data: profile }, { data: ageRow }, { data: payout }, { data: reviews }] =
+  const [{ data: profile }, { data: ageRow }, { data: reviews }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -62,13 +53,6 @@ export default async function SettingsPage({
         .select("date_of_birth")
         .eq("id", user.id)
         .maybeSingle(),
-      marketplace
-        ? supabase
-            .from("host_payout_accounts")
-            .select("charges_enabled, details_submitted")
-            .eq("id", user.id)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
       supabase
         .from("party_reviews")
         .select("party_id, reviewer_id, rating, comment, created_at")
@@ -260,34 +244,6 @@ export default async function SettingsPage({
             </form>
           )}
         </div>
-
-        {/* Marketplace mode only: hosts connect a payout account so their
-            ticket money can be released to them after the party. */}
-        {marketplace && stripeConfigured() ? (
-          <div className="border-t border-white/10 pt-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Landmark size={16} className="text-amber-300" />
-              Udbetalinger
-            </h3>
-            {payout?.charges_enabled ? (
-              <p className="mt-2 flex items-center gap-2 text-sm text-emerald-300">
-                <ShieldCheck size={15} />
-                Tilsluttet. Billetindtægter udbetales efter dine fester.
-              </p>
-            ) : (
-              <form action={connectStripePayouts} className="mt-2 space-y-2">
-                <p className="text-xs text-zinc-400">
-                  {payout
-                    ? "Din tilslutning er ikke færdig endnu. Fortsæt hos Stripe."
-                    : "Tilslut en udbetalingskonto (Stripe), så din billetindtægt kan udbetales efter festen."}
-                </p>
-                <SubmitButton className="btn-secondary" pendingText="Åbner Stripe…">
-                  {payout ? "Fortsæt tilslutning" : "Tilslut udbetalinger"}
-                </SubmitButton>
-              </form>
-            )}
-          </div>
-        ) : null}
       </section>
 
       <PushNotificationSettings />

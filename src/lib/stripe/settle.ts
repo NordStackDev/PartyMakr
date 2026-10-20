@@ -7,10 +7,9 @@ import { claimWindowDays } from "@/lib/payments/mode";
 import { getSession, refundPaymentIntent } from "./client";
 
 /**
- * Settle a paid Checkout Session: complete the payment row and file the
- * request (solo -> pending join request, group -> forming becomes requested).
+ * Settle a historic Checkout Session: complete its payment row and file the
+ * request. Kept for sessions created before entry payments were removed.
  * Idempotent. On a capacity race the DB refuses and we refund immediately.
- * Shared by the webhook and the return-from-checkout reconcile.
  */
 export async function settleCheckoutSession(
   session: Stripe.Checkout.Session,
@@ -32,8 +31,7 @@ export async function settleCheckoutSession(
     .maybeSingle();
   if (!pay || pay.status === "completed") return;
 
-  // Never trust the redirect — compare Stripe's charged total (entré + gebyr)
-  // to what we recorded server-side.
+  // Compare Stripe's charged total to the amount recorded server-side.
   const expected = (Number(pay.amount_dkk) + Number(pay.fee_dkk ?? 0)) * 100;
   if (session.amount_total !== expected) return;
 
@@ -77,25 +75,6 @@ export async function settleCheckoutSession(
       .update({ payout_status: "held", payout_due_at: dueAt.toISOString() })
       .eq("reference", reference);
   }
-}
-
-/**
- * Reconcile by our reference (used on the return redirect, where the webhook
- * may not have fired — e.g. localhost). provider_ref holds the Checkout
- * Session id until settled. Safe to call repeatedly.
- */
-export async function reconcileByReference(reference: string): Promise<void> {
-  const admin = createAdminClient();
-  const { data: pay } = await admin
-    .from("party_payments")
-    .select("provider_ref, status")
-    .eq("reference", reference)
-    .maybeSingle();
-  if (!pay?.provider_ref || pay.status !== "pending") return;
-  if (!pay.provider_ref.startsWith("cs_")) return;
-
-  const session = await getSession(pay.provider_ref);
-  await settleCheckoutSession(session);
 }
 
 /**

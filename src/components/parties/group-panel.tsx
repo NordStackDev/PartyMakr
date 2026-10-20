@@ -50,19 +50,14 @@ const STATUS_BADGE: Record<MemberStatus, { label: string; cls: string }> = {
 
 /**
  * Guest-side group signup on the party page: form a group with friends, invited
- * friends accept/decline, the leader submits to the host. For free parties an
- * approval confirms everyone immediately (Phase A). Self-fetches the caller's
- * group (RLS returns only groups they lead or are invited to).
+ * friends accept/decline, and the leader submits to the host. Host approval
+ * confirms everyone. Self-fetches the caller's group (RLS returns only groups
+ * they lead or are invited to).
  */
 export function GroupPanel({
   partyId,
-  entreDkk,
-  feeDkk = 0,
 }: {
   partyId: string;
-  entreDkk: number | null;
-  /** Marketplace mode: the platform fee per ticket on top of the price. */
-  feeDkk?: number;
 }) {
   const [uid, setUid] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
@@ -97,7 +92,7 @@ export function GroupPanel({
         leader_id: string;
         status: GroupStatus;
       }[];
-      // Prefer an active group; fall back to a paid one. Ignore declined/cancelled.
+      // Prefer an active group; ignore declined/cancelled.
       const mine =
         rows.find((g) => LIVE.includes(g.status) && g.status !== "paid") ??
         rows.find((g) => g.status === "paid") ??
@@ -172,29 +167,6 @@ export function GroupPanel({
     });
   }
 
-  // Start a Mollie checkout for the group and redirect the leader to it.
-  function pay() {
-    if (!group) return;
-    setError(null);
-    start(async () => {
-      try {
-        const res = await fetch("/api/payments/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partyId, groupId: group.id }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.checkout) {
-          setError(json.error ?? "Kunne ikke starte betaling.");
-          return;
-        }
-        window.location.href = json.checkout;
-      } catch {
-        setError("Kunne ikke starte betaling.");
-      }
-    });
-  }
-
   if (loading) return null;
 
   // ---- No active group: offer to form one with friends ------------------
@@ -206,10 +178,7 @@ export function GroupPanel({
           Kom med en gruppe
         </p>
         <p className="mt-1 text-xs text-zinc-400">
-          Inviter venner der også kommer, og meld jer til samlet
-          {entreDkk && entreDkk > 0
-            ? `. I betaler ${entreDkk} kr. pr. person, når værten har godkendt.`
-            : "."}
+          Inviter venner der også kommer, og meld jer til samlet.
         </p>
 
         {picking ? (
@@ -258,11 +227,6 @@ export function GroupPanel({
   const acceptedOthers = group.members.filter(
     (m) => m.status === "accepted" && m.userId !== group.leaderId,
   ).length;
-  const acceptedCount = group.members.filter(
-    (m) => m.status === "accepted",
-  ).length;
-  // Total the leader pays: (entré + evt. platformgebyr) × accepted members.
-  const total = ((entreDkk ?? 0) + feeDkk) * acceptedCount;
   const leaderName =
     group.members.find((m) => m.userId === group.leaderId)?.name ?? "Lederen";
 
@@ -349,16 +313,11 @@ export function GroupPanel({
       ) : amLeader &&
         (group.status === "requested" || group.status === "approved") ? (
         <p className="mt-1 text-xs text-zinc-400">
-          {entreDkk && entreDkk > 0
-            ? "Betalt · sendt til værten. Afventer godkendelse. Afviser værten, refunderes hele beløbet."
-            : "Sendt til værten. Afventer godkendelse."}
+          Sendt til værten. Afventer godkendelse.
         </p>
       ) : amLeader && group.status === "forming" ? (
         <p className="mt-1 text-xs text-zinc-400">
           Afventer at dine venner accepterer invitationen.
-          {entreDkk && entreDkk > 0
-            ? ` Du betaler ${entreDkk} kr. pr. deltager, når gruppen sendes til værten.`
-            : ""}
         </p>
       ) : null}
 
@@ -368,18 +327,13 @@ export function GroupPanel({
         <p className="mt-2 text-sm text-red-300">{error}</p>
       ) : null}
 
-      {/* Leader controls. Paid party: sending the group to the host IS the
-          payment (pay-at-request); free party: plain submit. */}
+      {/* The group leader submits the selected members to the host. */}
       {amLeader && group.status === "forming" ? (
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             disabled={pending || acceptedOthers < 1}
-            onClick={() =>
-              entreDkk && entreDkk > 0
-                ? pay()
-                : run(() => submitGroup(partyId, group.id))
-            }
+            onClick={() => run(() => submitGroup(partyId, group.id))}
             className="btn-primary flex-1 disabled:opacity-60"
             title={
               acceptedOthers < 1
@@ -387,9 +341,7 @@ export function GroupPanel({
                 : undefined
             }
           >
-            {entreDkk && entreDkk > 0
-              ? `Send til vært og betal (${total} kr.)`
-              : "Send til vært"}
+            Send til vært
           </button>
           <button
             type="button"
@@ -408,9 +360,7 @@ export function GroupPanel({
           onClick={() => run(() => cancelGroup(partyId, group.id))}
           className="mt-3 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:bg-white/5 disabled:opacity-60"
         >
-          {entreDkk && entreDkk > 0
-            ? "Træk tilbage (refunderes)"
-            : "Træk tilbage"}
+          Træk tilbage
         </button>
       ) : null}
     </div>
