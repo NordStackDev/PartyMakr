@@ -85,15 +85,14 @@ export default function LocationPicker({
     <MapContainer
       center={value ? [value.lat, value.lng] : center}
       zoom={13}
-      // Street names, no house numbers (CARTO renders none; cap zoom too).
+      // Keep the zoom capped so more detailed levels cannot reveal house numbers.
       maxZoom={16}
       className="h-full w-full"
       style={{ background: "#14100b" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         maxZoom={16}
       />
       <FlyTo target={flyTo} />

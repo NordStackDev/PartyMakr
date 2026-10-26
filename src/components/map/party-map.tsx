@@ -64,10 +64,10 @@ const FALLBACK: [number, number] = [55.6761, 12.5683];
 const MAX_ZOOM = 16;
 const TILES = {
   dark: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> &middot; Postnumre &copy; <a href="https://www.geonames.org/">GeoNames</a>',
-    subdomains: "abcd",
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &middot; Postnumre &copy; <a href="https://www.geonames.org/">GeoNames</a>',
+    subdomains: "",
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
