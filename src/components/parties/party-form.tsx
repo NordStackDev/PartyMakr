@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useActionState, useRef, useState } from "react";
 
 import { type CreatePartyState } from "@/lib/parties/actions";
+import { capacityDefault, capacityOptions } from "@/lib/parties/capacity";
 import { lookupPostcode } from "@/lib/postcode";
 import type { FlyTarget } from "@/components/map/location-picker";
 import { SubmitButton } from "@/components/submit-button";
@@ -323,16 +324,14 @@ export function PartyForm({
           <select
             name="capacity"
             required={strictCreate}
-            defaultValue={v?.capacity ?? (defaults?.capacity == null ? (strictCreate ? "20" : "") : String(defaults.capacity))}
+            defaultValue={v?.capacity ?? capacityDefault(defaults?.capacity, strictCreate)}
             className={`auth-input ${state.fieldErrors?.capacity ? "border-red-400/60" : ""}`}
           >
-            {!strictCreate ? <option value="">Ubegrænset</option> : null}
-            <option value="10">10 gæster</option>
-            <option value="20">20 gæster (anbefalet)</option>
-            <option value="30">30 gæster</option>
-            <option value="50">50 gæster</option>
-            <option value="100">100 gæster</option>
-            <option value="unlimited">Ubegrænset</option>
+            {capacityOptions(defaults?.capacity).map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           {state.fieldErrors?.capacity ? (
             <span className="mt-1 block text-sm text-red-300">{state.fieldErrors.capacity}</span>

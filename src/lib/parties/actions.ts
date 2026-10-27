@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { capacityValue } from "@/lib/parties/capacity";
 import { lookupPostcodeLocal } from "@/lib/postcode-data.server";
 import {
   findGroupReference,
@@ -117,12 +118,6 @@ function partyInfoArgs(formData: FormData) {
 function genderTarget(formData: FormData): string | null {
   const v = str(formData, "gender_target");
   return v === "male" || v === "female" || v === "other" ? v : null;
-}
-
-function capacityValue(raw: string): number | null {
-  if (!raw || raw === "unlimited") return null;
-  const value = Number(raw);
-  return Number.isInteger(value) && value > 0 ? value : null;
 }
 
 /**
